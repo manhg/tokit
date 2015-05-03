@@ -6,8 +6,8 @@ A kit for development with Tornado web framework.
 
 See https://github.com/manhg/writekit for usage demo.
 """
-version = "0.1"
-version_info = (0, 1, 0, 0)
+version_info = (0, 1, 1, 0)
+version = "0.1.1"
 import os, sys, subprocess
 
 if __name__ == '__main__':
