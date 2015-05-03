@@ -3,7 +3,8 @@
 @manhg/tokit
 
 A kit for development with Tornado web framework.
-See github@manhg/writekit for usage demo.
+
+See https://github.com/manhg/writekit for usage demo.
 """
 version = "0.1"
 version_info = (0, 1, 0, 0)
@@ -39,10 +40,13 @@ import tornado.web
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
+
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False, indent=4)
 
+
 class Register(type):
+    """ A metaclass to log information of all subclasses """
     _repo = collections.defaultdict(list)
 
     def __init__(cls, name, bases, nmspc, **kwarg):
@@ -50,14 +54,26 @@ class Register(type):
         super(Register, cls).__init__(name, bases, nmspc)
 
     @classmethod
-    def collect(mcs, parent_name):
+    def collect(mcs, parent_name) -> list:
+        """ Get all subclass of ``parent_name``
+
+        parent_name -- str pure class name without module prefix
+        """
         return Register._repo[parent_name]
 
 
 class Request(tornado.web.RequestHandler, metaclass=Register):
+    """ Base class for handling request """
 
-    """Route can be pattern or (pattern, name) or an URLSpec"""
-    route = None
+    ROUTE = None
+    """
+    Route can be pattern or (pattern, name) or an URLSpec::
+    
+        class Post(Request):
+            ROUTE = r'/post/.*'
+            def get(self, slug):
+                pass # Add logic here
+    """
 
     def set_default_headers(self):
         self.set_header('Server', 'Python3')
@@ -68,15 +84,22 @@ class Request(tornado.web.RequestHandler, metaclass=Register):
         return namespace
 
     def js(self):
+        """ List (to preserved ordering) of JS path to to used by layout file """
         return []
 
     def css(self):
+        """ List (to preserved ordering) of CSS path to to used by layout file """
         return []
 
     @classmethod
     def known(cls):
+        """ Get Request's subclasses """
         routes = []
         for handler in Register.collect(cls.__name__):
+            if not handler.ROUTE:
+                logging.debug("Missing route for handler %s.%s",
+                    handler.__module__, handler.__name__)
+                continue
             if isinstance(handler.ROUTE, str):
                 routes.append(tornado.web.URLSpec(handler.ROUTE, handler))
             elif isinstance(handler.ROUTE, tornado.web.URLSpec):
@@ -92,6 +115,14 @@ class Websocket(tornado.websocket.WebSocketHandler, metaclass=Register):
 
 
 class Module(tornado.web.UIModule, metaclass=Register):
+    """ Subclass this to create a UIModule
+    It's available as class name::
+
+        class Table(Module):
+            def render(self):
+                pass # then in template, you can use {% module Table() %}
+
+    """
 
     @classmethod
     def known(cls):
@@ -99,15 +130,17 @@ class Module(tornado.web.UIModule, metaclass=Register):
 
 
 class Static(tornado.web.StaticFileHandler):
-
-    VALID_PATH = re.compile(r'.*\.(tag|js|css|png|jpg)$')
+    
+    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg'
+    VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
     def validate_absolute_path(self, root, absolute_path):
+        """ Add file types checking """
         if not self.VALID_PATH.match(absolute_path):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
 
-class Event:
+class Event():
     """Event handlers storage.
 
     Example:
@@ -157,7 +190,8 @@ class Event:
 
 
 class Config:
-
+    """ Subclass this to customize runtime config """
+    
     settings = dict(
         compress_response=True,
         static_path='.',
@@ -176,11 +210,17 @@ class Config:
     session_timeout = 60 * 24 * 3600
 
     def __init__(self, base_file):
-        logging.basicConfig(level=logging.INFO)
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         tornado.locale.load_translations('lang')
 
-    def production():
+    def dev(self):
+        """ Expose debug """
+        import tornado.options
+        tornado.options.parse_command_line()
+        logging.basicConfig(level=logging.DEBUG)
+
+    def production(self):
+        """ Common config for production """
         self.production = True
         logging.basicConfig(level=logging.WARNING)
         self.cookie_secret=os.environ.get('SECRET')
@@ -209,6 +249,7 @@ def load(config):
 
 
 def start(port, config):
+    """ Entry point for application. This setups IOLoop, load classes and run HTTP server """
     load(config)
     Event.get('setting').emit(config.settings)
     config.settings['ui_modules'] = Module.known()
