@@ -50,20 +50,29 @@ class Register(type):
     _repo = collections.defaultdict(list)
 
     def __init__(cls, name, bases, nmspc, **kwarg):
-        Register._repo[bases[0].__name__].append(cls)
+        *_, base_cls = bases
+        Register._repo[base_cls.__name__].append(cls)
         super(Register, cls).__init__(name, bases, nmspc)
 
     @classmethod
     def collect(mcs, parent_name) -> list:
         """ Get all subclass of ``parent_name``
 
-        parent_name -- str pure class name without module prefix
+        :param str parent_name: pure class name without module prefix
         """
         return Register._repo[parent_name]
 
 
 class Request(tornado.web.RequestHandler, metaclass=Register):
-    """ Base class for handling request """
+    """
+    Base class for handling request
+    Class hierarchy is defined right to left, methods are resolved is from left to right
+    http://www.ianlewis.org/en/mixins-and-python
+    Therefore, mixin if exists, should be added to the left of declare::
+
+        class Foo(BarMixin, Request):
+            pass
+    """
 
     ROUTE = None
     """
