@@ -230,7 +230,7 @@ class Config:
         cookie_secret='TODO'
     )
     root_path = None
-    production = False
+    in_production = False
     timezone = 'UTC'
     locale = 'en'
     modules = ()
@@ -243,14 +243,14 @@ class Config:
 
     def development(self):
         """ Expose debug """
-        self.production = False
+        self.in_production = False
         import tornado.options
         tornado.options.parse_command_line()
         logging.basicConfig(level=logging.DEBUG)
 
     def production(self):
         """ Common config for production """
-        self.production = True
+        self.in_production = True
         logging.basicConfig(level=logging.WARNING)
         self.settings['cookie_secret'] = os.environ.get('SECRET')
 
@@ -303,7 +303,7 @@ def start(port, config):
 
     http_server.listen(port, 'localhost')
     logging.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
-    if config.production:
+    if config.in_production:
         signal.signal(signal.SIGTERM, _on_term)
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
