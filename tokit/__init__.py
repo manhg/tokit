@@ -56,6 +56,7 @@ class Repo:
                 parent_cls, *_ = inspect.getmro(obj)
                 self.name = parent_cls.__name__
         self._repo[self.name].append(obj)
+        return obj
 
     @classmethod
     def known(cls, name):
