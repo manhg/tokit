@@ -6,8 +6,8 @@ A kit for development with Tornado web framework.
 
 See https://github.com/manhg/writekit for usage demo.
 """
-version_info = (0, 1, 1, 0)
-version = "0.1.1"
+version_info = (0, 1, 2, 0)
+version = "0.1.2"
 import os, sys, subprocess
 
 if __name__ == '__main__':
@@ -32,6 +32,7 @@ import time
 import signal
 import json
 import importlib
+import inspect
 from contextlib import contextmanager
 
 import tornado.locale
@@ -41,12 +42,28 @@ import tornado.websocket
 from tornado.ioloop import IOLoop
 
 
-def to_json(obj):
-    return json.dumps(obj, ensure_ascii=False, indent=4)
+class Repo:
+    """ Decorator-based registry of objects"""
+
+    _repo = collections.defaultdict(list)
+
+    def __init__(self, name=None):
+        self.name = name
+
+    def __call__(self, obj):
+        if not self.name:
+            if inspect.isclass(obj):
+                parent_cls, *_ = inspect.getmro(obj)
+                self.name = parent_cls.__name__
+        self._repo[self.name].append(obj)
+
+    @classmethod
+    def known(cls, name):
+        return cls._repo.get(name, [])
 
 
 class Register(type):
-    """ A metaclass to log information of all subclasses """
+    """ A metaclass to make subclasses registry for any class """
     _repo = collections.defaultdict(list)
 
     def __init__(cls, name, bases, nmspc, **kwarg):
@@ -89,6 +106,8 @@ class Request(tornado.web.RequestHandler, metaclass=Register):
 
     def get_template_namespace(self):
         namespace = super(Request, self).get_template_namespace()
+        def to_json(obj):
+            return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
         namespace['json'] = to_json
         return namespace
 
@@ -149,7 +168,7 @@ class Static(tornado.web.StaticFileHandler):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
 
-class Event():
+class Event:
     """Event handlers storage.
 
     Example:
@@ -222,8 +241,9 @@ class Config:
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         tornado.locale.load_translations('lang')
 
-    def dev(self):
+    def development(self):
         """ Expose debug """
+        self.production = False
         import tornado.options
         tornado.options.parse_command_line()
         logging.basicConfig(level=logging.DEBUG)
@@ -232,7 +252,7 @@ class Config:
         """ Common config for production """
         self.production = True
         logging.basicConfig(level=logging.WARNING)
-        self.cookie_secret=os.environ.get('SECRET')
+        self.settings['cookie_secret'] = os.environ.get('SECRET')
 
 
 class App(tornado.web.Application):
@@ -260,7 +280,7 @@ def load(config):
 def start(port, config):
     """ Entry point for application. This setups IOLoop, load classes and run HTTP server """
     load(config)
-    Event.get('setting').emit(config.settings)
+    Event.get('config').emit(config)
     config.settings['ui_modules'] = Module.known()
     app = App(**config.settings)
     app.config = config
@@ -282,10 +302,9 @@ def start(port, config):
         ioloop.add_callback_from_signal(_graceful)
 
     http_server.listen(port, 'localhost')
-    signal.signal(signal.SIGTERM, _on_term)
-
     logging.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
     if config.production:
+        signal.signal(signal.SIGTERM, _on_term)
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
     try:
