@@ -23,7 +23,7 @@ if __name__ == '__main__':
         , stderr=subprocess.STDOUT, shell=True)
     sys.exit(0)
 
-__all__ = ['Register', 'Request', 'Websocket', 'Module', 'Static', 'Config']
+__all__ = ['MetaRepo', 'Request', 'Websocket', 'Module', 'Static', 'Config']
 
 import re
 import collections
@@ -60,28 +60,33 @@ class Repo:
 
     @classmethod
     def known(cls, name):
+        """ Get registerd objects """
         return cls._repo.get(name, [])
 
 
-class Register(type):
+class MetaRepo(type):
     """ A metaclass to make subclasses registry for any class """
     _repo = collections.defaultdict(list)
 
     def __init__(cls, name, bases, nmspc, **kwarg):
-        *_, base_cls = bases
-        Register._repo[base_cls.__name__].append(cls)
-        super(Register, cls).__init__(name, bases, nmspc)
+        # Instance object
+        super(MetaRepo, cls).__init__(name, bases, nmspc)
+        # Register
+        repo_name = getattr(cls, '_repo_', None)
+        if not repo_name:
+            *_, base_cls = bases
+            repo_name = base_cls.__name__
+        MetaRepo._repo[repo_name].append(cls)
 
     @classmethod
-    def collect(mcs, parent_name) -> list:
-        """ Get all subclass of ``parent_name``
-
+    def known(mcs, parent_name) -> list:
+        """ Get registered subclass of ``parent_name``
         :param str parent_name: pure class name without module prefix
         """
-        return Register._repo[parent_name]
+        return MetaRepo._repo[parent_name]
 
 
-class Request(tornado.web.RequestHandler, metaclass=Register):
+class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
     """
     Base class for handling request
     Class hierarchy is defined right to left, methods are resolved is from left to right
@@ -92,12 +97,12 @@ class Request(tornado.web.RequestHandler, metaclass=Register):
             pass
     """
 
-    ROUTE = None
+    _route_ = None
     """
     Route can be pattern or (pattern, name) or an URLSpec::
     
         class Post(Request):
-            ROUTE = r'/post/.*'
+            _route_ = r'/post/.*'
             def get(self, slug):
                 pass # Add logic here
     """
@@ -124,26 +129,27 @@ class Request(tornado.web.RequestHandler, metaclass=Register):
     def known(cls):
         """ Get Request's subclasses """
         routes = []
-        for handler in Register.collect(cls.__name__):
-            if not handler.ROUTE:
+        for handler in MetaRepo.known(cls.__name__):
+            route = getattr(handler, '_route_', None)
+            if not route:
                 logging.debug("Missing route for handler %s.%s",
                     handler.__module__, handler.__name__)
                 continue
-            if isinstance(handler.ROUTE, str):
-                routes.append(tornado.web.URLSpec(handler.ROUTE, handler))
-            elif isinstance(handler.ROUTE, tornado.web.URLSpec):
-                routes.append(handler.ROUTE)
+            if isinstance(route, str):
+                routes.append(tornado.web.URLSpec(route, handler))
+            elif isinstance(route, tornado.web.URLSpec):
+                routes.append(route)
             else:
-                pattern, name = handler.ROUTE
+                pattern, name = route
                 routes.append(tornado.web.URLSpec(pattern, handler, name=name))
         return routes
 
 
-class Websocket(tornado.websocket.WebSocketHandler, metaclass=Register):
+class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
     pass
 
 
-class Module(tornado.web.UIModule, metaclass=Register):
+class Module(tornado.web.UIModule, metaclass=MetaRepo):
     """ Subclass this to create a UIModule
     It's available as class name::
 
@@ -155,7 +161,7 @@ class Module(tornado.web.UIModule, metaclass=Register):
 
     @classmethod
     def known(cls):
-        return {c.__name__: c for c in Register.collect(cls.__name__)}
+        return {c.__name__: c for c in MetaRepo.known(cls.__name__)}
 
 
 class Static(tornado.web.StaticFileHandler):
@@ -305,6 +311,7 @@ def start(port, config):
     http_server.listen(port, 'localhost')
     logging.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
     if config.in_production:
+        # Automatically kill if anything blocks the process
         signal.signal(signal.SIGTERM, _on_term)
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
