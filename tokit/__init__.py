@@ -41,6 +41,9 @@ import tornado.web
 import tornado.websocket
 from tornado.ioloop import IOLoop
 
+def to_json(obj):
+    return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
+
 
 class Repo:
     """ Decorator-based registry of objects"""
@@ -112,8 +115,6 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
     def get_template_namespace(self):
         namespace = super(Request, self).get_template_namespace()
-        def to_json(obj):
-            return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
         namespace['json'] = to_json
         return namespace
 
@@ -124,6 +125,13 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
     def css(self):
         """ List (to preserved ordering) of CSS path to to used by layout file """
         return []
+
+    def get_request_dict(self, *args):
+        """ Return dict of request arguments """
+        return {field: self.get_body_argument(field) for field in args}
+
+    def redirect_referer(self):
+        return self.redirect(self.request.headers.get('Referer', '/'))
 
     @classmethod
     def known(cls):
@@ -146,7 +154,9 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
 
 class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
-    pass
+
+    def reply(self, message=None, **kwargs):
+        self.write_message(to_json(message or kwargs))
 
 
 class Module(tornado.web.UIModule, metaclass=MetaRepo):
@@ -251,8 +261,6 @@ class Config:
     def development(self):
         """ Expose debug """
         self.in_production = False
-        import tornado.options
-        tornado.options.parse_command_line()
         logging.basicConfig(level=logging.DEBUG)
 
     def production(self):
