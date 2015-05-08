@@ -23,9 +23,10 @@ if __name__ == '__main__':
         , stderr=subprocess.STDOUT, shell=True)
     sys.exit(0)
 
-__all__ = ['MetaRepo', 'Request', 'Websocket', 'Module', 'Static', 'Config']
+__all__ = ['MetaRepo', 'Repo', 'Request', 'Websocket', 'Module', 'Static', 'Config']
 
 import re
+import os
 import collections
 import logging
 import time
@@ -33,6 +34,7 @@ import signal
 import json
 import importlib
 import inspect
+import configparser
 from contextlib import contextmanager
 
 import tornado.locale
@@ -132,6 +134,10 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
     def redirect_referer(self):
         return self.redirect(self.request.headers.get('Referer', '/'))
+
+    @property
+    def env(self):
+        return self.application.config.env
 
     @classmethod
     def known(cls):
@@ -253,25 +259,34 @@ class Config:
     modules = ()
     kill_blocking = 2  # (second) time to kill process if blocking too long
     session_timeout = 60 * 24 * 3600
+    env_name = None
+    env = {}
 
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         tornado.locale.load_translations('lang')
 
-    def development(self):
-        """ Expose debug """
-        self.in_production = False
-        logging.basicConfig(level=logging.DEBUG)
+    def load(self, cfg_files=None):
+        """ Load extra env config
+        :param: list cfg_files relative path to project root
+        """
+        self.env = configparser.ConfigParser()
+        main, *overrides = [os.path.join(self.root_path, f) for f in cfg_files]
+        self.env.read_file(open(main))
+        if len(overrides):
+            self.env.read(overrides)
+        
+        self.in_production = self.env['app'].getboolean('in_production')
+        log_level = self.env['app'].get('log_level')
+        logging.basicConfig(level=getattr(logging, log_level))
+        self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
 
-    def production(self):
-        """ Common config for production """
-        self.in_production = True
-        logging.basicConfig(level=logging.WARNING)
-        self.settings['cookie_secret'] = os.environ.get('SECRET')
+        Event.get('env').emit(self.env)
 
 
 class App(tornado.web.Application):
-    pass
+
+    config = None
 
 
 def load(config):
@@ -301,7 +316,7 @@ def start(port, config):
     app.config = config
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
-    Event.get('init').emit(app)
+    Event.get('init').emit(app, ioloop)
     app.add_handlers('.*$', Request.known())
 
     def _graceful():
