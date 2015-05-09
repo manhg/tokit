@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
     name = 'tokit',
     packages = ['tokit'],
-    version = '0.1.2',
+    version = '0.1.3',
     description = r'''A kit for development with Tornado web framework.
         'See https://github.com/manhg/writekit for usage demo.''',
     author = 'Giang Manh',
