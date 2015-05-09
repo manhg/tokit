@@ -281,6 +281,7 @@ class Config:
             self.env.read(overrides)
         
         self.in_production = self.env['app'].getboolean('in_production')
+        self.settings['debug'] = self.env['app'].getboolean('debug')
         log_level = self.env['app'].get('log_level')
         logging.basicConfig(level=getattr(logging, log_level))
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
