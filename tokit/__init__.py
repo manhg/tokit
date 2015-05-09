@@ -115,9 +115,13 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
     def set_default_headers(self):
         self.set_header('Server', 'Python3')
 
+    def abs_url(self, *args):
+        return self.request.protocol + "://" + self.request.host + self.reverse_url(*args)
+
     def get_template_namespace(self):
         namespace = super(Request, self).get_template_namespace()
         namespace['json'] = to_json
+        namespace['url'] = self.abs_url
         return namespace
 
     def js(self):
@@ -130,7 +134,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
     def get_request_dict(self, *args):
         """ Return dict of request arguments """
-        return {field: self.get_body_argument(field) for field in args}
+        return collections.OrderedDict((field, self.get_body_argument(field)) for field in args)
 
     def redirect_referer(self):
         return self.redirect(self.request.headers.get('Referer', '/'))
