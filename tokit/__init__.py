@@ -259,8 +259,13 @@ class Config:
     in_production = False
     timezone = 'UTC'
     locale = 'en'
-    modules = ()
-    kill_blocking = 2  # (second) time to kill process if blocking too long
+
+    modules = None
+    """ List of dirname, as a module """
+    
+    kill_blocking = 2
+    """ (second) time to kill process if blocking too long """
+    
     session_timeout = 60 * 24 * 3600
     env_name = None
     env = {}
@@ -301,19 +306,25 @@ class App(tornado.web.Application):
 def load(config):
     """ Import declared modules from config, during this imports, routes
     and other components will be registered """
-    try:
-        os.environ['TZ'] = config.timezone
-        time.tzset()
-        tornado.locale.set_default_locale(config.locale)
-        for m in config.modules:
+    os.environ['TZ'] = config.timezone
+    time.tzset()
+    tornado.locale.set_default_locale(config.locale)
+    if not config.modules:
+        # Search all modules as a dir
+        _, config.modules, _ = next(os.walk(config.root_path))
+        logging.info('Auto loaded modules: %s', config.modules)
+    for m in config.modules:
+        try:
             importlib.import_module(m)
-    except SyntaxError:
-        ex = sys.exc_info()
-        logging.error("Broken module: ", ex[0].__name__,
-                      os.path.basename(
-                          sys.exc_info()[2].tb_frame.f_code.co_filename),
-                      ex[2].tb_lineno)
-        sys.exit(1)
+        except TypeError:
+            pass
+        except SyntaxError:
+            ex = sys.exc_info()
+            logging.error("Broken module: %s %s %s", ex[0].__name__,
+                          os.path.basename(
+                              sys.exc_info()[2].tb_frame.f_code.co_filename),
+                          ex[2].tb_lineno)
+            sys.exit(1)
 
 
 def start(port, config):
