@@ -272,6 +272,7 @@ class Config:
 
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
+        self.settings['static_path'] = os.path.join(self.root_path, self.settings['static_path'])
         lang_path = os.path.join(self.root_path, 'lang')
         if os.path.exists(lang_path):
             tornado.locale.load_translations(lang_path)
