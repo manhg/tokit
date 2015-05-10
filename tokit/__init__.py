@@ -41,6 +41,7 @@ import tornado.locale
 import tornado.httpserver
 import tornado.web
 import tornado.websocket
+import tornado.netutil
 from tornado.ioloop import IOLoop
 
 def to_json(obj):
@@ -280,14 +281,17 @@ class Config:
         if len(overrides):
             self.env.read(overrides)
         
+        Event.get('env').emit(self.env)
+        self.setup()
+
+    def setup(self):
         self.in_production = self.env['app'].getboolean('in_production')
         self.settings['debug'] = self.env['app'].getboolean('debug')
         log_level = self.env['app'].get('log_level')
         logging.basicConfig(level=getattr(logging, log_level))
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
-
-        Event.get('env').emit(self.env)
-
+        dns_resolver = self.env['app'].get('dns_resolver', 'tornado.netutil.ThreadedResolver')
+        tornado.netutil.Resolver.configure(dns_resolver)
 
 class App(tornado.web.Application):
 
