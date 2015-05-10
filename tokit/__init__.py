@@ -267,7 +267,9 @@ class Config:
 
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
-        tornado.locale.load_translations(os.path.join(self.root_path, 'lang'))
+        lang_path = os.path.join(self.root_path, 'lang')
+        if os.path.exists(lang_path):
+            tornado.locale.load_translations(lang_path)
 
     def load(self, cfg_files=None):
         """ Load extra env config

@@ -12,7 +12,7 @@ setup(
     author_email = 'manhgd@yahoo.com',
     url = 'https://github.com/manhg/tokit',
     download_url = 'https://github.com/manhg/tokit/tarball/' + tokit_version,
-    keywords = ['tornado', 'web'],
+    keywords = ['tornado', 'web', 'tokit'],
     classifiers=[
         'Programming Language :: Python :: 3.4',
         ],
