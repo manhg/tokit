@@ -42,6 +42,8 @@ import tornado.websocket
 import tornado.netutil
 from tornado.ioloop import IOLoop
 
+logger = logging.getLogger('tokit')
+
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
 
@@ -64,7 +66,9 @@ class Repo:
 
     @classmethod
     def known(cls, name):
-        """ Get registerd objects """
+        """ Get registerd objects
+        :return list
+        """
         return cls._repo.get(name, [])
 
 
@@ -133,7 +137,8 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
     def get_request_dict(self, *args):
         """ Return dict of request arguments """
-        return collections.OrderedDict((field, self.get_body_argument(field)) for field in args)
+        return collections.OrderedDict(
+            (field, self.get_body_argument(field, None)) for field in args)
 
     def redirect_referer(self):
         return self.redirect(self.request.headers.get('Referer', '/'))
@@ -149,7 +154,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
         for handler in MetaRepo.known(cls.__name__):
             route = getattr(handler, '_route_', None)
             if not route:
-                logging.debug("Missing route for handler %s.%s",
+                logger.debug("Missing route for handler %s.%s",
                     handler.__module__, handler.__name__)
                 continue
             if isinstance(route, str):
@@ -164,8 +169,12 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
 class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
 
-    def reply(self, message=None, **kwargs):
-        self.write_message(to_json(message or kwargs))
+    def reply(self, _payload=None, **kwargs):
+        self.write_message(_payload or to_json(kwargs))
+
+    @property
+    def env(self):
+        return self.application.config.env
 
 
 class Module(tornado.web.UIModule, metaclass=MetaRepo):
@@ -303,6 +312,17 @@ class App(tornado.web.Application):
 
     config = None
 
+    @classmethod
+    def instance(cls, config):
+        load(config)
+        Event.get('config').emit(config)
+        config.settings['ui_modules'] = Module.known()
+        app = App(**config.settings)
+        app.config = config
+        Event.get('init').emit(app)
+        Event.get(config.env_name).emit(app)
+        app.add_handlers('.*$', Request.known())
+        return app
 
 def load(config):
     """ Import declared modules from config, during this imports, routes
@@ -311,41 +331,40 @@ def load(config):
     time.tzset()
     tornado.locale.set_default_locale(config.locale)
     if not config.modules:
-        # Search all modules as a dir
+        # Search all modules as a dir,
         _, config.modules, _ = next(os.walk(config.root_path))
-        logging.info('Auto loaded modules: %s', config.modules)
+        # Exclude special dirnames
+        config.modules = [m for m in config.modules \
+            if not (m.startswith('.') or m.startswith('_'))]
+    loaded = []
     for m in config.modules:
         try:
             importlib.import_module(m)
+            loaded.append(m)
         except TypeError:
             pass
         except SyntaxError:
             ex = sys.exc_info()
-            logging.error("Broken module: %s %s %s", ex[0].__name__,
+            logger.error("Broken module: %s %s %s", ex[0].__name__,
                           os.path.basename(
                               sys.exc_info()[2].tb_frame.f_code.co_filename),
                           ex[2].tb_lineno)
             sys.exit(1)
+    logger.info('Autoloaded modules: %s', loaded)
 
 
 def start(port, config):
     """ Entry point for application. This setups IOLoop, load classes and run HTTP server """
-    load(config)
-    Event.get('config').emit(config)
-    config.settings['ui_modules'] = Module.known()
-    app = App(**config.settings)
-    app.config = config
+    app = App.instance(config)
+
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
-    Event.get('init').emit(app, ioloop)
-    app.add_handlers('.*$', Request.known())
-
     def _graceful():
         def _shutdown():
             pass
 
         ioloop.stop()
-        logging.info('Shutting down...')
+        logger.info('Shutting down...')
         http_server.stop()
         ioloop.call_later(1, _shutdown)
 
@@ -353,7 +372,7 @@ def start(port, config):
         ioloop.add_callback_from_signal(_graceful)
 
     http_server.listen(port, 'localhost')
-    logging.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
+    logger.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
     if config.in_production:
         # Automatically kill if anything blocks the process
         signal.signal(signal.SIGTERM, _on_term)
@@ -362,4 +381,4 @@ def start(port, config):
     try:
         ioloop.start()
     except KeyboardInterrupt:
-        logging.info('Bye.')
+        logger.info('Bye.')
