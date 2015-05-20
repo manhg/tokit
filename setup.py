@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.1.4'
+tokit_version = '0.1.5'
 setup(
     name = 'tokit',
     packages = ['tokit'],

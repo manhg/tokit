@@ -298,6 +298,7 @@ class Config:
         
         Event.get('env').emit(self.env)
         self.setup()
+        Event.get('config').emit(self)
 
     def setup(self):
         self.in_production = self.env['app'].getboolean('in_production')
