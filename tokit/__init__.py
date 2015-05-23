@@ -49,7 +49,11 @@ def to_json(obj):
 
 
 class Repo:
-    """ Decorator-based registry of objects"""
+    """ Decorator-based registry of objects
+
+    Example::
+        
+    """
 
     _repo = collections.defaultdict(list)
 
@@ -66,8 +70,8 @@ class Repo:
 
     @classmethod
     def known(cls, name):
-        """ Get registerd objects
-        :return list
+        """ Get registered objects
+        :return: list
         """
         return cls._repo.get(name, [])
 
@@ -149,7 +153,9 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
     @classmethod
     def known(cls):
-        """ Get Request's subclasses """
+        """ Get Request's subclasses
+        TODO add weight or ordering important routes
+        """
         routes = []
         for handler in MetaRepo.known(cls.__name__):
             route = getattr(handler, '_route_', None)
