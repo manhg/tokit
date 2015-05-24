@@ -200,7 +200,7 @@ class Module(tornado.web.UIModule, metaclass=MetaRepo):
 
 class Static(tornado.web.StaticFileHandler):
     
-    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg'
+    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'txt'
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
     def validate_absolute_path(self, root, absolute_path):
