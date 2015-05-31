@@ -6,12 +6,14 @@ class CustomLoader(Loader):
     """
     Template preprocessor with translation shortcut.
 
-    In template file, write ``{:key}`` will be equililant to ``{{ _("key") }}``
-    and ``{=expr}`` will be result in ``{{ _(expr) }}``
+        * ``{::key}`` -> ``{{ _("key") }}``
+        * ``{:key}``-> ``{{ _(key) }}``
+        * ``{=expr}``-> ``{{ expr }}``
     """
     def _custom_prepocessor(self, content):
-        _content = re.sub(rb'{\:(.*?)}', rb'{{ _("\1") }}', content, re.DOTALL)
-        _content = re.sub(rb'{=(.*?)}', rb'{{ _(\1) }}', _content, re.DOTALL)
+        _content = re.sub(rb'{\:\:(.*?)}', rb'{{ _("\1") }}', content, re.DOTALL)
+        _content = re.sub(rb'{\:(.*?)}', rb'{{ _(\1) }}', _content, re.DOTALL)
+        _content = re.sub(rb'{=(.*?)}', rb'{{ \1 }}', _content, re.DOTALL)
         return _content
     def _create_template(self, name):
         path = os.path.join(self.root, name)

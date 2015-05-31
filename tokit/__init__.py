@@ -257,6 +257,9 @@ class Event:
         for handler in self._handlers:
             handler(*args, **kwargs)
 
+class AttributeDict(dict):
+    __getattr__ = dict.__getitem__
+    __setattr__ = dict.__setitem__
 
 class Config:
     """ Subclass this to customize runtime config """
@@ -270,6 +273,7 @@ class Config:
         compiled_template_cache=False,
         cookie_secret='TODO'
     )
+    x = AttributeDict()
     root_path = None
     in_production = False
     timezone = 'UTC'
