@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 import tokit
 
+
 def pg_init(app):
     """ Hook to init Postgres momoko driver.
     dsn config is required, with syntax same as Psycopg2 DSN.
@@ -20,12 +21,15 @@ def pg_init(app):
     app.db = momoko.Pool(dsn=postgres.get('dsn'), size=postgres.getint('size'))
     app.db.connect()
 
+
 def pg_debug(_):
     for lg in [logger, logging.getLogger('momoko')]:
         lg.setLevel(logging.DEBUG)
 
+
 tokit.Event.get('debug').attach(pg_debug)
 tokit.Event.get('init').attach(pg_init)
+
 
 class PgMixin:
     @property

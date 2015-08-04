@@ -9,7 +9,7 @@ See https://github.com/manhg/writekit for usage demo.
 import os, sys, subprocess
 
 if __name__ == '__main__':
-    # TODO Create project structure, dependancies
+    # TODO Create project structure, dependencies
     print("Project installation: ", os.getcwd())
     if not input("Press Enter to continue, N to exit: "):
         print("Writing: ")
@@ -43,6 +43,7 @@ import tornado.netutil
 from tornado.ioloop import IOLoop
 
 logger = logging.getLogger('tokit')
+
 
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
@@ -161,7 +162,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
             route = getattr(handler, '_route_', None)
             if not route:
                 logger.debug("Missing route for handler %s.%s",
-                    handler.__module__, handler.__name__)
+                             handler.__module__, handler.__name__)
                 continue
             if isinstance(route, str):
                 routes.append(tornado.web.URLSpec(route, handler))
@@ -174,7 +175,6 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
 
 
 class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
-
     def reply(self, _payload=None, **kwargs):
         self.write_message(_payload or to_json(kwargs))
 
@@ -199,7 +199,6 @@ class Module(tornado.web.UIModule, metaclass=MetaRepo):
 
 
 class Static(tornado.web.StaticFileHandler):
-    
     ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'txt'
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
@@ -208,6 +207,7 @@ class Static(tornado.web.StaticFileHandler):
         if not self.VALID_PATH.match(absolute_path):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
+
 
 class Event:
     """Event handlers storage.
@@ -257,13 +257,15 @@ class Event:
         for handler in self._handlers:
             handler(*args, **kwargs)
 
+
 class AttributeDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
+
 class Config:
     """ Subclass this to customize runtime config """
-    
+
     settings = dict(
         compress_response=True,
         static_path='.',
@@ -281,10 +283,10 @@ class Config:
 
     modules = None
     """ List of dirname, as a module """
-    
+
     kill_blocking = 2
     """ (second) time to kill process if blocking too long """
-    
+
     session_timeout = 60 * 24 * 3600
     env_name = None
     env = {}
@@ -305,7 +307,7 @@ class Config:
         self.env.read_file(open(main))
         if len(overrides):
             self.env.read(overrides)
-        
+
         Event.get('env').emit(self.env)
         self.setup()
         Event.get('config').emit(self)
@@ -319,8 +321,8 @@ class Config:
         dns_resolver = self.env['app'].get('dns_resolver', 'tornado.netutil.ThreadedResolver')
         tornado.netutil.Resolver.configure(dns_resolver)
 
-class App(tornado.web.Application):
 
+class App(tornado.web.Application):
     config = None
 
     @classmethod
@@ -335,6 +337,7 @@ class App(tornado.web.Application):
         app.add_handlers('.*$', Request.known())
         return app
 
+
 def load(config):
     """ Import declared modules from config, during this imports, routes
     and other components will be registered """
@@ -346,7 +349,7 @@ def load(config):
         _, config.modules, _ = next(os.walk(config.root_path))
         # Exclude special dirnames
         config.modules = [m for m in config.modules \
-            if not (m.startswith('.') or m.startswith('_'))]
+                          if not (m.startswith('.') or m.startswith('_'))]
     loaded = []
     for m in config.modules:
         try:
@@ -357,9 +360,9 @@ def load(config):
         except SyntaxError:
             ex = sys.exc_info()
             logger.error("Broken module: %s %s %s", ex[0].__name__,
-                          os.path.basename(
-                              sys.exc_info()[2].tb_frame.f_code.co_filename),
-                          ex[2].tb_lineno)
+                         os.path.basename(
+                             sys.exc_info()[2].tb_frame.f_code.co_filename),
+                         ex[2].tb_lineno)
             sys.exit(1)
     logger.info('Autoloaded modules: %s', loaded)
 
@@ -370,6 +373,7 @@ def start(port, config):
 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
+
     def _graceful():
         def _shutdown():
             pass

@@ -7,22 +7,27 @@ import tokit
 
 from tornado.websocket import WebSocketHandler
 
+
 def parse_json(s):
     try:
         return json.loads(s)
     except ValueError as e:
         raise Exception('Invalid JSON: ' + str(e))
 
+
 def api_auth(method):
     """
     Require auth cookie to access an API
     """
+
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
             self.write_exception(Exception('Login required'))
         return method(self, *args, **kwargs)
+
     return wrapper
+
 
 class JsonMixin:
     """ Auto parse JSON request body and store in self.data """
