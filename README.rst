@@ -1,6 +1,6 @@
 Recommended layout::
 
-    ── fabfile.py
+    ├──  fabfile.py
     └── src
         ├── app.py
         ├── common
@@ -19,6 +19,7 @@ Recommended layout::
 
 Usage::
 
+    # --- ---
     # app.py
     import tokit
 
@@ -26,6 +27,7 @@ Usage::
     if __name__ == '__main__':
         tokit.start(8000, config)
 
+    # --- ---
     # common/__init__.py
     import tokit
     import tornado.websocket
@@ -45,6 +47,7 @@ Usage::
 
         _repo_ = 'Request'
     
+    # --- ---
     # Per directory per module by default, let's say, put this class
     # in home/__init__.py
     class HomeHandler(Request):
