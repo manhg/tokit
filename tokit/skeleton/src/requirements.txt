@@ -1,0 +1,11 @@
+tornado
+tokit
+
+# Database, optional
+psycopg2
+momoko
+
+# Optional
+sphinx
+rednose
+# pycares

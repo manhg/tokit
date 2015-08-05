@@ -1,0 +1,14 @@
+[Service]
+WorkingDirectory=/home/PR0JECT/src/
+
+# -u unbuffered
+# -OO optimized by remove docstring, assert
+ExecStart=/home/PR0JECT/bin/python3 -u -OO /home/PR0JECT/src/app.py --port=%I
+Restart=always
+User=PR0JECT
+SyslogIdentifier=PR0JECT
+Environment=ENV=production
+# To customize, create a folder PR0JECT@.service.d and and secret.conf file there
+
+[Install]
+WantedBy=multi-user.target
