@@ -1,11 +1,14 @@
 tornado
 tokit
 
-# Database, optional
-psycopg2
-momoko
+# OPTIONAL
+
+# Database
+# You need postgres developement setup
+# psycopg2
+# momoko
 
 # Optional
-sphinx
-rednose
+# sphinx
+# rednose
 # pycares

@@ -3,25 +3,11 @@
 @manhgd/tokit
 A kit for development with Tornado web framework.
 """
-import os, sys, subprocess
-
-if __name__ == '__main__':
-    # TODO Create project structure, dependencies
-    print("Project installation: ", os.getcwd())
-    if not input("Press Enter to continue, N to exit: "):
-        print("Writing: ")
-    [os.makedirs(p) for p in ("static", "src/vendor")]
-    subprocess.call(
-        "pyvenv . ;"
-        "source bin/activate;"
-        "pip3 install tornado;"
-        , stderr=subprocess.STDOUT, shell=True)
-    sys.exit(0)
 
 __all__ = ['MetaRepo', 'Repo', 'Request', 'Websocket', 'Module', 'Static', 'Config']
 
+import os, sys, subprocess
 import re
-import os
 import collections
 import logging
 import time

@@ -1,6 +1,6 @@
 Get started by creating a skeleton project::
 
-    $ python3 -m tokit.start
+    $ python3 -m tokit
 
 Inside src/ folder, put your modules.
 Each modules should contains templates, JS, CSS, Python, ... If a module interact with other modules, use tokit.Event for hooking

@@ -2,11 +2,18 @@ import json
 import traceback
 import sys
 import functools
+import string
+import random
 
 import tokit
 
 from tornado.websocket import WebSocketHandler
 
+
+def secret(length=16):
+    return ''.join(random.SystemRandom(). \
+            choice(string.ascii_uppercase + string.digits) \
+            for _ in range(length))
 
 def parse_json(s):
     try:
