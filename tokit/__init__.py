@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-@manhg/tokit
-
+@manhgd/tokit
 A kit for development with Tornado web framework.
-
-See https://github.com/manhg/writekit for usage demo.
 """
 import os, sys, subprocess
 

@@ -1,3 +1,10 @@
+Get started by creating a skeleton project::
+
+    $ python3 -m tokit.start
+
+Inside src/ folder, put your modules.
+Each modules should contains templates, JS, CSS, Python, ... If a module interact with other modules, use tokit.Event for hooking
+
 Recommended layout::
 
     ├──  fabfile.py
