@@ -36,7 +36,7 @@ class Repo:
     """ Decorator-based registry of objects
 
     Example::
-        
+
     """
 
     _repo = collections.defaultdict(list)
@@ -96,7 +96,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
     _route_ = None
     """
     Route can be pattern or (pattern, name) or an URLSpec::
-    
+
         class Post(Request):
             _route_ = r'/post/.*'
             def get(self, slug):
@@ -377,6 +377,7 @@ def start(port, config):
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
     try:
+        Event.get('start').emit(app)
         ioloop.start()
     except KeyboardInterrupt:
         logger.info('Bye.')

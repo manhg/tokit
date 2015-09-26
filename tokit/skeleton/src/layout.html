@@ -11,15 +11,22 @@
     {% end %}
   {% end %}
 </head>
-<body>
+<body class="wrapper">
   {% block top %}
     <header>
-      <a href="/" id="logo">PR0JECT</a>
+    Hello world
     </header>
   {% end %}
-  <article>{% block body %}{% end %}</article>
+  <div class="wrapper-body">
+    {% block body %}{% end %}
+  </div>
+
   {% block bottom %}
+  <footer>
+    2015
+  </footer>
   {% end %}
+  
   {% block js %}
     {% for path in handler.js() %}
       <script src="{{ static_url(path) }}" type="text/javascript"></script>

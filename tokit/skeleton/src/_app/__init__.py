@@ -2,16 +2,13 @@ import tokit
 
 from tokit.api import ErrorMixin, JsonMixin
 
-
 class Config(tokit.Config):
     timezone = 'Asia/Tokyo'
-
 
 def _addition(config):
     config.settings.update({
         'static_path': 'static'
     })
-
 
 tokit.Event.get('config').attach(_addition)
 
@@ -20,7 +17,7 @@ class Websocket(ErrorMixin, tokit.Websocket):
     _repo_ = 'Request'
 
 
-class Request(JsonMixin, ErrorMixin, tokit.Request):
+class Request(ErrorMixin, tokit.Request):
     _repo_ = 'Request'
 
     def css(self):

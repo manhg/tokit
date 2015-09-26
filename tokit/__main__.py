@@ -21,7 +21,7 @@ if project:
 
         'cp config/development.sample.ini config/development.ini',
         'cp config/production.sample.ini config/production.ini',
-        'echo "\ncookie_secret=%s" >> config/production.ini' % secret(),
+        'echo "\n[secret]\ncookie_secret=%s\n" >> config/production.ini' % secret(),
 
         "pyvenv . ",
         "source bin/activate",

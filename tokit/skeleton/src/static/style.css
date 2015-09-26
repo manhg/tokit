@@ -1,46 +1,45 @@
+/*
+Conventions:
+
+- Use camelClass name
+- Use dash to indicate child element
+- Use .xFunction prefix if that class is used by Javascript
+- Use simple selectors
+
+References:
+
+  http://engineering.appfolio.com/2012/11/16/css-architecture/
+  http://philipwalton.github.io/solved-by-flexbox/
+*/
+
+/* Reset */
 * { margin: 0; padding: 0; }
 body,div,span,li,button,input,select,textarea,dt,dl,a,p,th,td {
-  font-family: Arial,HiraKakuProN-W3,"メイリオ","ＭＳ Ｐゴシック",Meiryo,sans-serif;
-  font-size: 13px;
+  font-family: Arial,HiraKakuProN-W3,Meiryo,sans-serif;
   font-size: 1rem;
-}
-header, footer {
-  background-color: #e7e7e7;
-  padding: 0.5rem;
-}
-footer {
-  font-size: 0.8em;
-}
-header .logo {
-  font-size: 1.2em;
-}
-body {
-  display: flex;
-  min-height: 100vh;
-  flex-direction: column;
-}
-article {
-  flex: 1;
-  padding: 0.5rem;
 }
 button,input,select,textarea,p,th,td {
   padding: 0.3rem;
 }
 input,select,textarea {
-  border: solid 1px #ccc;
+  border: solid 1px;
+  border-color: darkgrey;
 }
 a {
   text-decoration: none;
-  color: #007EED;
+  color: darkblue;
 }
-a:hover { text-decoration: underline; }
-a#logo {
-  color: #333;
-  font-weight: bold;
+a:hover {
+  text-decoration: underline;
 }
-@media (max-width: 640px) {
-  input[type=email],input[type=text], textarea {
-    width: 100%;
-    padding: 0.3rem 0;
-  }
+
+/* Sticky footer */
+.wrapper {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
 }
+.wrapper-body {
+  flex: 1;
+}
+
