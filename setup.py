@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.3.1'
+tokit_version = '0.3.3'
 setup(
     name='tokit',
     packages=['tokit'],
@@ -15,5 +15,6 @@ setup(
     keywords=['tornado', 'web', 'tokit'],
     classifiers=[
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 )
