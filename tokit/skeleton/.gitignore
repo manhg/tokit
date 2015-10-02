@@ -1,3 +1,10 @@
 config/development.ini
 config/production.ini
 doc/_build
+
+# Pyvenv
+bin
+include
+lib
+lib64
+src/tokit

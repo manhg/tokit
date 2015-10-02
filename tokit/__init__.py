@@ -23,6 +23,7 @@ import tornado.httpserver
 import tornado.web
 import tornado.websocket
 import tornado.netutil
+from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
 
 logger = logging.getLogger('tokit')
@@ -182,7 +183,7 @@ class Module(tornado.web.UIModule, metaclass=MetaRepo):
 
 
 class Static(tornado.web.StaticFileHandler):
-    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'svg',  'gif', 'ico', 'zip', 'tar', 'tgz', 'txt'
+    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'svg',  'gif', 'zip', 'tar', 'tgz', 'txt'
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
     def validate_absolute_path(self, root, absolute_path):
@@ -190,7 +191,6 @@ class Static(tornado.web.StaticFileHandler):
         if not self.VALID_PATH.match(absolute_path):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
-
 
 class Event:
     """Event handlers storage.

@@ -1,5 +1,0 @@
-tornado
-momoko==2.0
-
-# remove if you don't write document in code
-sphinx

@@ -82,3 +82,7 @@ class PgMixin:
         values = list(data.values())
         values.append(row_id)
         yield self.db.execute(sql, values)
+
+    # Aliases
+    db_insert = pg_insert
+    db_update = pg_update
