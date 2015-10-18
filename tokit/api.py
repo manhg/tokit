@@ -9,11 +9,15 @@ import tokit
 
 from tornado.websocket import WebSocketHandler
 
+from json import JSONEncoder
+from uuid import UUID
+
 
 def secret(length=16):
     return ''.join(random.SystemRandom(). \
-            choice(string.ascii_uppercase + string.digits) \
-            for _ in range(length))
+                   choice(string.ascii_uppercase + string.digits) \
+                   for _ in range(length))
+
 
 def parse_json(s):
     try:
@@ -36,6 +40,30 @@ def api_auth(method):
     return wrapper
 
 
+class FullEncoder(JSONEncoder):
+    """
+    Encode all "difficult" object such as UUID
+    """
+
+    def _iterencode(self, obj, markers=None):
+
+        if isinstance(obj, tuple) and hasattr(obj, '_asdict'):
+            gen = self._iterencode_dict(obj._asdict(), markers)
+        else:
+            gen = JSONEncoder._iterencode(self, obj, markers)
+        for chunk in gen:
+            yield chunk
+
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            return obj.hex
+        else:
+            return JSONEncoder.default(self, obj)
+
+
+full_encoder = FullEncoder()
+
+
 class JsonMixin:
     """ Auto parse JSON request body and store in self.data """
 
@@ -47,6 +75,13 @@ class JsonMixin:
                 self.data = parse_json(self.request.body.decode())
             except ValueError as e:
                 self.write_exception(e)
+
+    def encode(self, obj=None, **kwargs):
+        if isinstance(obj, list):
+            raise ValueError('Lists not accepted for security reasons')
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        ret = kwargs if not obj else obj
+        self.write(full_encoder.encode(ret))
 
 
 class ErrorMixin:

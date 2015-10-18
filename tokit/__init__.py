@@ -25,6 +25,8 @@ import tornado.websocket
 import tornado.netutil
 from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
+from tornado.testing import gen_test
+from tornado.testing import AsyncHTTPTestCase
 
 logger = logging.getLogger('tokit')
 
@@ -186,7 +188,7 @@ class Module(tornado.web.UIModule, metaclass=MetaRepo):
 
 
 class Static(tornado.web.StaticFileHandler):
-    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'svg',  'gif', 'zip', 'tar', 'tgz', 'txt'
+    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'svg', 'gif', 'zip', 'tar', 'tgz', 'txt'
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
     def validate_absolute_path(self, root, absolute_path):
@@ -194,6 +196,7 @@ class Static(tornado.web.StaticFileHandler):
         if not self.VALID_PATH.match(absolute_path):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
+
 
 class Event:
     """Event handlers storage.
@@ -279,12 +282,14 @@ class Config:
 
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
+        os.chdir(self.root_path)
+        HttpTest.app_src = self.root_path
         self.settings['static_path'] = os.path.join(self.root_path, self.settings['static_path'])
         lang_path = os.path.join(self.root_path, 'lang')
         if os.path.exists(lang_path):
             tornado.locale.load_translations(lang_path)
 
-    def load(self, cfg_files=None):
+    def read_ini(self, cfg_files=None):
         """ Load extra env config
         :param: list cfg_files relative path to project root
         """
@@ -304,9 +309,75 @@ class Config:
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
         logger.setLevel(log_level)
+
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
         dns_resolver = self.env['app'].get('dns_resolver', 'tornado.netutil.ThreadedResolver')
         tornado.netutil.Resolver.configure(dns_resolver)
+
+        os.environ['TZ'] = self.timezone
+        time.tzset()
+        tornado.locale.set_default_locale(self.locale)
+
+
+    def set_env(self, env_name=None, config_path='../config'):
+        self.env_name = env_name or os.environ.get('ENV', 'development')
+        try:
+            # Add common.ini if needed to share
+            self.read_ini([config_path + '/%s.ini' % self.env_name])
+        except FileNotFoundError as e:
+            logging.warning('Config file is not present')
+        logging.info('Env: ' + self.env_name)
+
+
+    def load_modules(self):
+        """
+        Import declared modules from config, during this imports, routes
+        and other components will be registered
+        """
+
+        if not self.modules:
+            # Search all modules as a dir,
+            _, self.modules, _ = next(os.walk(self.root_path))
+            # Exclude special dirnames
+            self.modules = [m for m in self.modules \
+                              if not (m.startswith('.') or m.startswith('_'))]
+        loaded = []
+        for m in self.modules:
+            try:
+                importlib.import_module(m)
+                loaded.append(m)
+            except TypeError:
+                pass
+            except SyntaxError:
+                ex = sys.exc_info()
+                logger.error("Broken module: %s %s %s", ex[0].__name__,
+                             os.path.basename(
+                                 sys.exc_info()[2].tb_frame.f_code.co_filename),
+                             ex[2].tb_lineno)
+                sys.exit(1)
+        logger.info('Autoloaded modules: %s', loaded)
+
+
+class HttpTest(AsyncHTTPTestCase):
+
+    _app = None
+
+    def get_app(self):
+        return self._app
+
+    @gen_test
+    def test_request(self, relative_url, check=None):
+        abs_url = self.get_url(relative_url)
+        response = yield self.http_client.fetch(abs_url)
+        self.assertEquals(response.code, 200)
+        if check:
+            # Do additional check
+            check(self, response)
+
+def setup_http_test(app):
+    HttpTest._app = app
+
+Event.get('init').attach(setup_http_test)
 
 
 class App(tornado.web.Application):
@@ -314,48 +385,23 @@ class App(tornado.web.Application):
 
     @classmethod
     def instance(cls, config):
-        load(config)
+        config.load_modules()
         Event.get('config').emit(config)
         config.settings['ui_modules'] = Module.known()
+
         app = App(**config.settings)
         app.config = config
         Event.get('init').emit(app)
         Event.get(config.env_name).emit(app)
+
         app.add_handlers('.*$', Request.known())
         return app
 
-
-def load(config):
-    """ Import declared modules from config, during this imports, routes
-    and other components will be registered """
-    os.environ['TZ'] = config.timezone
-    time.tzset()
-    tornado.locale.set_default_locale(config.locale)
-    if not config.modules:
-        # Search all modules as a dir,
-        _, config.modules, _ = next(os.walk(config.root_path))
-        # Exclude special dirnames
-        config.modules = [m for m in config.modules \
-                          if not (m.startswith('.') or m.startswith('_'))]
-    loaded = []
-    for m in config.modules:
-        try:
-            importlib.import_module(m)
-            loaded.append(m)
-        except TypeError:
-            pass
-        except SyntaxError:
-            ex = sys.exc_info()
-            logger.error("Broken module: %s %s %s", ex[0].__name__,
-                         os.path.basename(
-                             sys.exc_info()[2].tb_frame.f_code.co_filename),
-                         ex[2].tb_lineno)
-            sys.exit(1)
-    logger.info('Autoloaded modules: %s', loaded)
-
-
 def start(port, config):
-    """ Entry point for application. This setups IOLoop, load classes and run HTTP server """
+    """
+    Entry point for application.
+    This setups IOLoop, load classes and run HTTP server
+    """
     app = App.instance(config)
 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)

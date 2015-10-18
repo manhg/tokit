@@ -12,9 +12,11 @@ from sqlbuilder.smartsql import Table, Query, compile as compile_sql
 
 logger = tokit.logger
 
+
 def allow_management():
     os.environ['CQLENG_ALLOW_SCHEMA_MANAGEMENT'] = 'CQLENG_ALLOW_SCHEMA_MANAGEMENT'
-    
+
+
 def cassandra_init(app):
     """
     Sample configuration::
@@ -47,10 +49,11 @@ def cassandra_init(app):
     # Further hook
     tokit.Event.get('cassandra_init').emit(app)
 
+
 tokit.Event.get('init').attach(cassandra_init)
 
 
-class CassandraMixin():
+class CassandraMixin:
     """
     Reference: http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Session.execute_async
     """
@@ -64,7 +67,6 @@ class CassandraMixin():
             keyspace = self.application.config.env['cassandra'].get('keyspace')
         return self.application.cassandra_cluster.connect(keyspace)
 
-    @coroutine
     def cs_insert(self, table, data):
         t = getattr(Table, table)
         statement = Query(t).insert(data)
@@ -88,7 +90,7 @@ class CassandraMixin():
         logger.debug('Cassandra executes: %s', query)
         # Cassanra driver use a different thread
         cs_future = self.db.execute_async(*query)
-        
+
         def _success(result):
             IOLoop.instance().add_callback(future.set_result, result)
 
