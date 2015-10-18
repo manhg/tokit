@@ -73,6 +73,9 @@ class MetaRepo(type):
         if not repo_name:
             *_, base_cls = bases
             repo_name = base_cls.__name__
+        if cls.__name__ == repo_name:
+            # Don't add itself, the abstract repo class
+            return
         MetaRepo._repo[repo_name].append(cls)
 
     @classmethod

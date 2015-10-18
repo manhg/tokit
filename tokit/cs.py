@@ -8,7 +8,7 @@ from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
 
 import tokit
-from sqlbuilder.smartsql import Table, Query, compile
+from sqlbuilder.smartsql import Table, Query, compile as compile_sql
 
 logger = tokit.logger
 
@@ -83,7 +83,7 @@ class CassandraMixin():
         """
         query = statement
         if isinstance(query, Query):
-            query = compile(statement)
+            query = compile_sql(statement)
         future = Future()
         logger.debug('Cassandra executes: %s', query)
         # Cassanra driver use a different thread
