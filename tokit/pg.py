@@ -2,9 +2,9 @@ import logging
 from tornado.gen import coroutine
 import momoko
 
-logger = logging.getLogger(__name__)
-
 import tokit
+
+logger = tokit.logger
 
 
 def pg_init(app):
@@ -17,17 +17,11 @@ def pg_init(app):
         dsn=dbname=[APP_NAME]
         size=2
     """
+    logging.getLogger('momoko').setLevel(logger.getEffectiveLevel())
     postgres = app.config.env['postgres']
     app.db = momoko.Pool(dsn=postgres.get('dsn'), size=postgres.getint('size'))
     app.db.connect()
 
-
-def pg_debug(_):
-    for lg in [logger, logging.getLogger('momoko')]:
-        lg.setLevel(logging.DEBUG)
-
-
-tokit.Event.get('debug').attach(pg_debug)
 tokit.Event.get('init').attach(pg_init)
 
 

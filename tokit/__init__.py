@@ -298,8 +298,9 @@ class Config:
     def setup(self):
         self.in_production = self.env['app'].getboolean('in_production')
         self.settings['debug'] = self.env['app'].getboolean('debug')
-        log_level = self.env['app'].get('log_level')
-        logging.basicConfig(level=getattr(logging, log_level))
+        log_level = getattr(logging, self.env['app'].get('log_level'))
+        logging.basicConfig(level=log_level)
+        logger.setLevel(log_level)
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
         dns_resolver = self.env['app'].get('dns_resolver', 'tornado.netutil.ThreadedResolver')
         tornado.netutil.Resolver.configure(dns_resolver)
