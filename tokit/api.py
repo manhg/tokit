@@ -56,7 +56,7 @@ class FullEncoder(JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, UUID):
-            return obj.hex
+            return str(obj)
         else:
             return JSONEncoder.default(self, obj)
 

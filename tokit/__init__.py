@@ -4,8 +4,6 @@
 A kit for development with Tornado web framework.
 """
 
-__all__ = ['MetaRepo', 'Repo', 'Request', 'Websocket', 'Module', 'Static', 'Config']
-
 import os, sys, subprocess
 import re
 import collections
@@ -150,8 +148,9 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
         for handler in MetaRepo.known(cls.__name__):
             route = getattr(handler, '_route_', None)
             if not route:
-                logger.debug("Missing route for handler %s.%s",
-                             handler.__module__, handler.__name__)
+                if not handler.__module__.startswith('_'):
+                    logger.debug("Missing route for handler %s.%s",
+                                 handler.__module__, handler.__name__)
                 continue
             if isinstance(route, str):
                 routes.append(tornado.web.URLSpec(route, handler))

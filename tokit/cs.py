@@ -1,5 +1,6 @@
 import logging
 import os
+from uuid import UUID
 
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection as cqlengine_connection
@@ -8,10 +9,10 @@ from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
 
 import tokit
-from sqlbuilder.smartsql import Table, Query, compile as compile_sql
+from sqlbuilder.smartsql import Table, Query, Result
+from sqlbuilder.smartsql.compilers.cassandra import compile as cassandra_compile
 
-logger = tokit.logger
-
+logger = logging.getLogger(__name__)
 
 def allow_management():
     os.environ['CQLENG_ALLOW_SCHEMA_MANAGEMENT'] = 'CQLENG_ALLOW_SCHEMA_MANAGEMENT'
@@ -28,6 +29,7 @@ def cassandra_init(app):
         port=9042
         keyspace=blabla
     """
+    logging.getLogger('cs').setLevel(tokit.logger.getEffectiveLevel())
     try:
         config = app.config.env['cassandra']
     except KeyError:
@@ -52,6 +54,18 @@ def cassandra_init(app):
 
 tokit.Event.get('init').attach(cassandra_init)
 
+def valid_id(row_id):
+    try:
+        return UUID(row_id)
+    except ValueError:
+        raise HTTPError(400, 'Invalid UUID')
+
+def prepare(table, row_id=None):
+    t = getattr(Table, table)
+    q = Query(t, result=Result(compile=cassandra_compile))
+    if row_id:
+        q = q.where(t.id == valid_id(row_id))
+    return t, q
 
 class CassandraMixin:
     """
@@ -59,23 +73,31 @@ class CassandraMixin:
     """
 
     @property
-    def db(self, keyspace=None):
+    def db(self):
+        return cs_db()
+
+    def cs_db(self, keyspace=None):
         """
         Get Cassandra session
+        TODO reuse session?
         """
         if not keyspace:
             keyspace = self.application.config.env['cassandra'].get('keyspace')
         return self.application.cassandra_cluster.connect(keyspace)
 
     def cs_insert(self, table, data):
-        t = getattr(Table, table)
-        statement = Query(t).insert(data)
+        t, q = prepare(table)
+        statement = q.insert(data)
         return self.cs_query(statement)
 
-    @coroutine
     def cs_update(self, table, row_id, data):
-        t = getattr(Table, table)
-        statement = Query(t).where(t.id == row_id).update(data)
+        _, q = prepare(table, row_id)
+        statement = q.update(data)
+        return self.cs_query(statement)
+
+    def cs_delete(self, table_row_id):
+        _, q = prepare(table, row_id)
+        statement = q.delete()
         return self.cs_query(statement)
 
     def cs_query(self, statement):
@@ -85,11 +107,11 @@ class CassandraMixin:
         """
         query = statement
         if isinstance(query, Query):
-            query = compile_sql(statement)
+            query = statement.select()
         future = Future()
         logger.debug('Cassandra executes: %s', query)
         # Cassanra driver use a different thread
-        cs_future = self.db.execute_async(*query)
+        cs_future = self.cs_db().execute_async(*query)
 
         def _success(result):
             IOLoop.instance().add_callback(future.set_result, result)
@@ -100,7 +122,16 @@ class CassandraMixin:
         cs_future.add_callbacks(_success, _fail)
         return future
 
+    def db_prepare(self, table):
+        return prepare(table)
+
+    def db_row(self, table, row_id):
+        t, q = prepare(table, row_id)
+        statement = q.select()
+        return self.cs_query(statement)
+
     # Aliases
     db_insert = cs_insert
     db_update = cs_update
     db_query = cs_query
+

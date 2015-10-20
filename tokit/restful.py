@@ -1,7 +1,7 @@
 import logging
 
 from tornado.gen import coroutine
-from sqlbuilder.smartsql import Table, Query
+from tornado.web import HTTPError
 
 from tokit import MetaRepo, Request, logger, Event
 from tokit.api import ErrorMixin, JsonMixin
@@ -22,15 +22,14 @@ class Resource(ErrorMixin, JsonMixin, Request):
 
     @coroutine
     def get(self): # list items
-        t = Table(self._restful_)
-        q = Query().tables(t).fields('*')
-        rows = yield self.db_query(q)
+        t, q = self.db_prepare(self._restful_)
+        rows = yield self.db_query(q.fields('*'))
         self.encode(length=len(rows), items=rows)
 
     @coroutine
     def post(self):
         data = self.get_request_dict()
-        ret = yield self.db_insert(data)
+        ret = yield self.db_insert(self._restful_, data)
         self.encode(ret=ret)
 
 
@@ -40,23 +39,31 @@ class Item(ErrorMixin, JsonMixin, Request):
     _restful_ = None
 
     @coroutine
-    def get(self, id):
-        t = Table(self._restful_)
-        q = Query().tables(t).fields('*')[0]
-        row = yield self.db_query(q)
+    def get(self, row_id):
+        row = yield self.db_row(self._restful_, row_id)
         self.encode(item=row)
 
+    @coroutine
+    def patch(self, row_id):
+        if not self.data:
+            raise HTTPError(400, 'No data to patch')
+        ret = yield self.db_update(
+            self._restful_, row_id, self.data
+        )
+        self.encode(status='ok', detail=ret)
 
-    def patch(self, id):
-        pass
-
-    def delete(self, id):
-        pass
+    @coroutine
+    def delete(self, row_id):
+        ret = yield self.db_delete(self._restful_, row_id)
+        self.encode(status='ok', detail=ret)
 
 
 def register_endpoints(self):
-    # If accept-content is json, run the endpoint
-    # If accept HTML then return reference documentation
+    """
+    If accept-content is json, run the endpoint
+    If accept HTML then return reference documentation
+    TODO nested endpoints
+    """
     resources = MetaRepo.known('Resource')
     items = MetaRepo.known('Item')
     logger.debug('Resources: %s', [r._restful_ for r in resources])

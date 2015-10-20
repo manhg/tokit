@@ -1,10 +1,14 @@
 config/development.ini
 config/production.ini
 doc/_build
+src/.idea
+.idea
+*.zip
+*.tar
+*.tgz
 
 # Pyvenv
 bin
 include
 lib
 lib64
-src/tokit

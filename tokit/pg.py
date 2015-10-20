@@ -1,6 +1,8 @@
 import logging
+
 from tornado.gen import coroutine
 import momoko
+from sqlbuilder.smartsql import Table, Query
 
 import tokit
 
@@ -19,8 +21,8 @@ def pg_init(app):
     """
     logging.getLogger('momoko').setLevel(logger.getEffectiveLevel())
     postgres = app.config.env['postgres']
-    app.db = momoko.Pool(dsn=postgres.get('dsn'), size=postgres.getint('size'))
-    app.db.connect()
+    app.pg_db = momoko.Pool(dsn=postgres.get('dsn'), size=postgres.getint('size'))
+    app.pg_db.connect()
 
 tokit.Event.get('init').attach(pg_init)
 
@@ -28,10 +30,13 @@ tokit.Event.get('init').attach(pg_init)
 class PgMixin:
     @property
     def db(self):
+        return self.pg_db()
+
+    def pg_db(self):
         """
         :return: momoko.Pool
         """
-        return self.application.db
+        return self.application.pg_db
 
     @coroutine
     def pg_insert(self, table, fields=None, **data):
@@ -59,7 +64,7 @@ class PgMixin:
                     ','.join(fields),
                     ','.join(['%s'] * len(fields))
                     )
-        cursor = yield self.db.execute(sql, values)
+        cursor = yield self.pg_db().execute(sql, values)
         return cursor.fetchone()[0]
 
     @coroutine
@@ -75,8 +80,25 @@ class PgMixin:
         sql = 'UPDATE {} SET {} WHERE id = %s'.format(table, ','.join(changes))
         values = list(data.values())
         values.append(row_id)
-        yield self.db.execute(sql, values)
+        yield self.pg_db().execute(sql, values)
 
-    # Aliases
+    @coroutine
+    def pg_query(self, statement):
+        """
+        statement - a tuple (sql, params) or a `sqlbuilder.Query` instance
+        """
+        query = statement
+        if isinstance(query, Query):
+            query = statement.select()
+        yield self.pg_db().execute(*query)
+
+    def db_prepare(self, row_id=None):
+        t = getattr(Table, table)
+        q = Query(t)
+        if row_id:
+            q.where(t.id == row_id)
+        return t, q
+
     db_insert = pg_insert
     db_update = pg_update
+    db_query = pg_query
