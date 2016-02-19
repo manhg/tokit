@@ -11,6 +11,14 @@ def _addition(config):
     config.settings.update({
         'static_path': 'static'
     })
+    try:
+        from tokit.compiler import attach as attach_compiler
+        attach_compiler()
+    except:
+        pass
+
+
+tokit.Event.get('config').attach(_addition)
 
 tokit.Event.get('config').attach(_addition)
 
