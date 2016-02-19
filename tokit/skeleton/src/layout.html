@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="{{ static_url('favicon.png') }}" />
   {% block head %}{% end %}
   {% block css %}
     {% for path in handler.css() %}
@@ -26,7 +27,7 @@
     2015
   </footer>
   {% end %}
-  
+
   {% block js %}
     {% for path in handler.js() %}
       <script src="{{ static_url(path) }}" type="text/javascript"></script>

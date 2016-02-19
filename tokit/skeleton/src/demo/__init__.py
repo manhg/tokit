@@ -1,5 +1,6 @@
 from _app import Request
 
+
 class HomeHandler(Request):
 
     _route_ = '^/', 'home'

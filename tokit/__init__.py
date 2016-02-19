@@ -34,10 +34,8 @@ def to_json(obj):
 
 
 class Repo:
-    """ Decorator-based registry of objects
-
-    Example::
-
+    """
+    Decorator-based registry of objects
     """
 
     _repo = collections.defaultdict(list)
@@ -394,6 +392,7 @@ class App(tornado.web.Application):
         Event.get(config.env_name).emit(app)
 
         app.add_handlers('.*$', Request.known())
+        Event.get('after_init').emit(app)
         return app
 
 def start(port, config):

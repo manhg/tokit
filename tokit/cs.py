@@ -102,7 +102,8 @@ class CassandraMixin:
 
     def cs_query(self, statement):
         """
-        statement - a tuple (sql, params) or a `sqlbuilder.Query` instance
+        statement - a tuple (sql, params) or a sqlbuilder.Query instance
+
         Reference: http://alexapps.net/cassandra-asynchronous-future-calls-pyth/
         """
         query = statement
@@ -127,7 +128,7 @@ class CassandraMixin:
 
     def db_row(self, table, row_id):
         t, q = prepare(table, row_id)
-        statement = q.select()
+        statement = q.fields('*').select()
         return self.cs_query(statement)
 
     # Aliases

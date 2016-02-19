@@ -2,8 +2,10 @@ import tokit
 
 from tokit.api import ErrorMixin, JsonMixin
 
+
 class Config(tokit.Config):
     timezone = 'Asia/Tokyo'
+
 
 def _addition(config):
     config.settings.update({

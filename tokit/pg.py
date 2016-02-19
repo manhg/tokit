@@ -85,7 +85,7 @@ class PgMixin:
     @coroutine
     def pg_query(self, statement):
         """
-        statement - a tuple (sql, params) or a `sqlbuilder.Query` instance
+        statement - a tuple (sql, params) or a sqlbuilder.Query instance
         """
         query = statement
         if isinstance(query, Query):
