@@ -406,12 +406,14 @@ def start(port, config):
     ioloop = IOLoop.instance()
 
     def _graceful():
+        """
+        Schedule shutdown on next tick
+        """
         def _shutdown():
-            pass
+            logger.info('Shutting down...')
+            http_server.stop()
+            ioloop.stop()
 
-        ioloop.stop()
-        logger.info('Shutting down...')
-        http_server.stop()
         ioloop.call_later(1, _shutdown)
 
     def _on_term(*args):
