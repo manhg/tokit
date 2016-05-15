@@ -26,6 +26,8 @@ if project:
         "pyvenv . ",
         "source bin/activate",
         "pip3 install -r src/requirements.txt",
+        "wget https://raw.githubusercontent.com/riot/riot/master/riot.js -O src/static/venodr/riot.js"
+        "wget https://raw.githubusercontent.com/github/fetch/master/fetch.js -O src/static/vendor/fetch.js"
         "python3 src/app.py"
     ]
 

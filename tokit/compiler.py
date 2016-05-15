@@ -5,12 +5,23 @@ Can serve files directly using shortcut: `python3 -m tokit.compiler`
 Require libsass and pyv8
 """
 import os
+import io
 import tornado.ioloop
 import tornado.web
 from tornado.iostream import IOStream
 
 import coffeescript
 import sass
+
+import execjs
+
+EngineError = execjs.RuntimeError
+CompilationError = execjs.ProgramError
+
+
+def read_file(filename):
+    with io.open(filename, encoding='utf8') as fp:
+        return fp.read()
 
 
 class CompilerHandler(tornado.web.RequestHandler):
@@ -51,10 +62,35 @@ class SassHandler(CompilerHandler):
         ))
 
 
+        '''
+        compile a Riot's tag code to a JavaScript code.
+        '''
+        if not hasattr(self, '_context'):
+            self._context = self._runtime.compile(self._compiler_script)
+        return self._context.call(
+            "CoffeeScript.compile", script, {'bare': bare})
+
+
+class JSCompilerHandler(CompilerHandler):
+
+    libraries = [
+        self.application.root_path + '/static/vendor/riot.js'
+    ]
+
+    def prepare(self):
+        self.set_header('Content-Type', 'application/javascript')
+        self.context = execjs.get().compile("\n".join(self.libraries))
+
+    def compile(self, requested_file):
+        self.application.root_path + requested_file
+        self.write()
+
+
 def urlspecs():
     return [
         (r'^(/.+\.coffee)$', CoffeeHandler),
         (r'^(/.+\.sass)$', SassHandler),
+        (r'^(/.+\.tag)$', RiotTagHandler),
     ]
 
 
