@@ -14,6 +14,7 @@ from sqlbuilder.smartsql.compilers.cassandra import compile as cassandra_compile
 
 logger = logging.getLogger(__name__)
 
+
 def allow_management():
     os.environ['CQLENG_ALLOW_SCHEMA_MANAGEMENT'] = 'CQLENG_ALLOW_SCHEMA_MANAGEMENT'
 
@@ -54,11 +55,13 @@ def cassandra_init(app):
 
 tokit.Event.get('init').attach(cassandra_init)
 
+
 def valid_id(row_id):
     try:
         return UUID(row_id)
     except ValueError:
         raise HTTPError(400, 'Invalid UUID')
+
 
 def prepare(table, row_id=None):
     t = getattr(Table, table)
@@ -66,6 +69,7 @@ def prepare(table, row_id=None):
     if row_id:
         q = q.where(t.id == valid_id(row_id))
     return t, q
+
 
 class CassandraMixin:
     """
@@ -135,4 +139,3 @@ class CassandraMixin:
     db_insert = cs_insert
     db_update = cs_update
     db_query = cs_query
-

@@ -59,13 +59,13 @@ class Repo:
         return cls._repo.get(name, [])
 
 
-class MetaRepo(type):
+class Registry(type):
     """ A metaclass to make subclasses registry for any class """
     _repo = collections.defaultdict(list)
 
     def __init__(cls, name, bases, nmspc, **kwarg):
         # Instance object
-        super(MetaRepo, cls).__init__(name, bases, nmspc)
+        super(Registry, cls).__init__(name, bases, nmspc)
         # Register
         repo_name = getattr(cls, '_repo_', None)
         if not repo_name:
@@ -74,17 +74,17 @@ class MetaRepo(type):
         if cls.__name__ == repo_name:
             # Don't add itself, the abstract repo class
             return
-        MetaRepo._repo[repo_name].append(cls)
+        Registry._repo[repo_name].append(cls)
 
     @classmethod
     def known(mcs, parent_name) -> list:
         """ Get registered subclass of ``parent_name``
         :param str parent_name: pure class name without module prefix
         """
-        return MetaRepo._repo[parent_name]
+        return Registry._repo[parent_name]
 
 
-class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
+class Request(tornado.web.RequestHandler, metaclass=Registry):
     """
     Base class for handling request
     Class hierarchy is defined right to left, methods are resolved is from left to right
@@ -143,7 +143,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
         TODO add weight or ordering important routes
         """
         routes = []
-        for handler in MetaRepo.known(cls.__name__):
+        for handler in Registry.known(cls.__name__):
             route = getattr(handler, '_route_', None)
             if not route:
                 if not handler.__module__.startswith('_'):
@@ -160,7 +160,7 @@ class Request(tornado.web.RequestHandler, metaclass=MetaRepo):
         return routes
 
 
-class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
+class Websocket(tornado.websocket.WebSocketHandler, metaclass=Registry):
     def reply(self, _payload=None, **kwargs):
         self.write_message(_payload or to_json(kwargs))
 
@@ -169,7 +169,7 @@ class Websocket(tornado.websocket.WebSocketHandler, metaclass=MetaRepo):
         return self.application.config.env
 
 
-class Module(tornado.web.UIModule, metaclass=MetaRepo):
+class Module(tornado.web.UIModule, metaclass=Registry):
     """ Subclass this to create a UIModule
     It's available as class name::
 
@@ -181,7 +181,7 @@ class Module(tornado.web.UIModule, metaclass=MetaRepo):
 
     @classmethod
     def known(cls):
-        return {c.__name__: c for c in MetaRepo.known(cls.__name__)}
+        return {c.__name__: c for c in Registry.known(cls.__name__)}
 
 
 class Static(tornado.web.StaticFileHandler):

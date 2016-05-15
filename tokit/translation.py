@@ -5,7 +5,7 @@ from tornado.template import Loader, Template
 
 class CustomLoader(Loader):
     """
-    Template preprocessor with translation shortcut.
+    Tornado's template preprocessor with translation shortcut.
 
         * ``{::key}`` -> ``{{ _("key") }}``
         * ``{:key}``-> ``{{ _(key) }}``
@@ -13,9 +13,9 @@ class CustomLoader(Loader):
     """
 
     def _custom_prepocessor(self, content):
-        _content = re.sub(rb'{\:\:(.*?)}', rb'{{ _("\1") }}', content, re.DOTALL)
-        _content = re.sub(rb'{\:(.*?)}', rb'{{ _(\1) }}', _content, re.DOTALL)
-        _content = re.sub(rb'{=(.*?)}', rb'{{ \1 }}', _content, re.DOTALL)
+        _content = re.sub(r'{\:\:(.*?)}', r'{{ _("\1") }}', content, re.DOTALL)
+        _content = re.sub(r'{\:(.*?)}', r'{{ _(\1) }}', _content, re.DOTALL)
+        _content = re.sub(r'{=(.*?)}', r'{{ \1 }}', _content, re.DOTALL)
         return _content
 
     def _create_template(self, name):
@@ -28,7 +28,7 @@ class CustomLoader(Loader):
             return template
 
 
-class I18nMixin:
+class TranslationMixin:
     def create_template_loader(self, template_path):
         settings = self.application.settings
         if "template_loader" in settings:
