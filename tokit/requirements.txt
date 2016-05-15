@@ -3,6 +3,7 @@ tokit
 sphinx
 rednose
 pycares
+pytest
 
 # If use SQL
 # sqlbuilder>=0.7,<0.8
@@ -17,3 +18,4 @@ pycares
 # If use Coffee and SASS
 # coffeescript==1.1.2
 # libsass==0.10.1
+

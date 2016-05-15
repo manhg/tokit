@@ -1,3 +1,4 @@
 MANIFEST
 dist/*
 .idea
+tokit/skeleton/src/static/vendor/*

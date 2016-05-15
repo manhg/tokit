@@ -1,2 +1,3 @@
 include requirements.txt
-recursive-include tokit/skeleton *
+recursive-include tokit/skeleton *.py
+global-exclude .*

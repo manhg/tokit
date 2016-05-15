@@ -6,8 +6,8 @@ import subprocess
 
 from .api import secret
 
-project = input("Enter project name (empty to quit): ")
-if project:
+
+def create_project(name):
     print("This will create a project skeleton using Tokit in current directory")
     source = os.path.join(os.path.dirname(__file__), 'skeleton')
     destination = os.path.join(os.getcwd(), project)
@@ -26,9 +26,15 @@ if project:
         "pyvenv . ",
         "source bin/activate",
         "pip3 install -r src/requirements.txt",
-        "wget https://raw.githubusercontent.com/riot/riot/master/riot.js -O src/static/venodr/riot.js"
-        "wget https://raw.githubusercontent.com/github/fetch/master/fetch.js -O src/static/vendor/fetch.js"
+        "pip install fabric",
+        "fab update_vendors"
         "python3 src/app.py"
     ]
 
     subprocess.call('; '.join(commands), stderr=subprocess.STDOUT, shell=True)
+
+if __name__ == '__main__':
+
+    name = input("Enter project name (empty to quit): ")
+    if name:
+        create_project(name)

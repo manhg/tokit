@@ -74,12 +74,16 @@ class SassHandler(CompilerHandler):
 class JSCompilerHandler(CompilerHandler):
 
     libraries = [
-        self.application.root_path + '/static/vendor/riot.js'
+        'vendor/riot.js'
     ]
 
     def prepare(self):
         self.set_header('Content-Type', 'application/javascript')
-        self.context = execjs.get().compile("\n".join(self.libraries))
+        libraries = [
+            self.application.root_path + '/static/' + library
+            for library in self.libraries
+        ]
+        self.context = execjs.get().compile("\n".join(libraries))
 
     def compile(self, requested_file):
         self.application.root_path + requested_file

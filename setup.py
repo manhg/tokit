@@ -1,4 +1,5 @@
-from distutils.core import setup
+from setuptools import setup
+
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
 tokit_version = '0.4.2'
@@ -19,12 +20,5 @@ setup(
     ],
     install_requires=[
         'tornado',
-        # 'cassandra-driver',
-        # 'momoko',
-    ],
-    dependency_links=[
-        # 'https://github.com/tornadoweb/tornado/archive/v4.2.1.tar.gz',
-        # 'https://github.com/FSX/momoko/archive/v2.2.0.tar.gz',
-        # 'https://github.com/datastax/python-driver/archive/2.7.2.tar.gz',
-    ],
+    ]
 )

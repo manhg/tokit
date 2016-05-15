@@ -12,9 +12,9 @@ logger = tokit.logger
 def pg_init(app):
     """ Hook to init Postgres momoko driver.
     dsn config is required, with syntax same as Psycopg2 DSN.
-    
+
     Sample env.ini::
-    
+
         [postgres]
         dsn=dbname=[APP_NAME]
         size=2
@@ -28,6 +28,7 @@ tokit.Event.get('init').attach(pg_init)
 
 
 class PgMixin:
+
     @property
     def db(self):
         return self.pg_db()
@@ -42,7 +43,7 @@ class PgMixin:
     def pg_insert(self, table, fields=None, **data):
         """
         Postgres shorcut to insert data
-        
+
         Example::
 
             user_id = yield self.pg_insert('users', {"username": "foo", "password": "secret"})

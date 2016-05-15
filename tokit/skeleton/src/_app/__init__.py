@@ -34,4 +34,8 @@ class Request(ErrorMixin, tokit.Request):
         return ['style.css']
 
     def js(self):
-        return ['vendor/riot.js', 'global.js']
+        return [
+            'vendor/tag.js',
+            'vendor/fetch.js',
+            'vendor/amd.js',
+        ]

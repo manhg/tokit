@@ -196,15 +196,16 @@ class Static(tornado.web.StaticFileHandler):
 
 
 class Event:
-    """Event handlers storage.
+    """
+    Event handlers storage.
 
     Example:
 
     >>> def handler(**kwargs):
     ...     print("Triggered:", kwargs)
     ...
-    >>> Event.get('init').attach(handler)
-    >>> Event.get('init').emit(status='OK')
+    >>> Event.get('some_thing_happened').attach(handler)
+    >>> Event.get('some_thing_happened').emit(status='OK')
     Triggered: {'status': 'OK'}
 
     """
@@ -363,18 +364,19 @@ class HttpTest(AsyncHTTPTestCase):
         return self._app
 
     @gen_test
-    def test_request(self, relative_url, check=None):
+    def request(self, relative_url, check=None):
         abs_url = self.get_url(relative_url)
         response = yield self.http_client.fetch(abs_url)
         self.assertEquals(response.code, 200)
         if check:
             # Do additional check
             check(self, response)
+        return response
 
-def setup_http_test(app):
+def init_http_test(app):
     HttpTest._app = app
 
-Event.get('init').attach(setup_http_test)
+Event.get('init').attach(init_http_test)
 
 
 class App(tornado.web.Application):
