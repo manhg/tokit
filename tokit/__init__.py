@@ -264,7 +264,7 @@ class Config:
     )
     x = AttributeDict()
     root_path = None
-    in_production = False
+    graceful = True
     timezone = 'UTC'
     locale = 'en'
 
@@ -302,7 +302,7 @@ class Config:
         Event.get('config').emit(self)
 
     def setup(self):
-        self.in_production = self.env['app'].getboolean('in_production')
+        self.graceful = self.env['app'].getboolean('graceful')
         self.settings['debug'] = self.env['app'].getboolean('debug')
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
@@ -397,6 +397,7 @@ class App(tornado.web.Application):
         Event.get('after_init').emit(app)
         return app
 
+
 def start(port, config):
     """
     Entry point for application.
@@ -412,9 +413,9 @@ def start(port, config):
         Schedule shutdown on next tick
         """
         def _shutdown():
-            logger.info('Shutting down...')
             http_server.stop()
             ioloop.stop()
+            logger.info('Stopped')
 
         ioloop.call_later(1, _shutdown)
 
@@ -423,9 +424,11 @@ def start(port, config):
 
     http_server.listen(port, 'localhost')
     logger.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
-    if config.in_production:
+
+    if config.graceful:
         # Automatically kill if anything blocks the process
         signal.signal(signal.SIGTERM, _on_term)
+        signal.signal(signal.SIGINT, _on_term)
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
     try:
@@ -433,3 +436,6 @@ def start(port, config):
         ioloop.start()
     except KeyboardInterrupt:
         logger.info('Bye.')
+    except Exception as e:
+        logger.exception(e)
+        logger.info('Server was down.')

@@ -1,8 +1,8 @@
 """
-Tranform to languages of browsers.
+Transform to browsers' languages
 Can serve files directly using shortcut: `python3 -m tokit.compiler`
 
-Require libsass and pyv8
+Require system's libsass and pyv8
 """
 import os
 import io
