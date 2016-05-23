@@ -6,7 +6,7 @@ import logging
 import _app
 
 from tornado.options import define, options, parse_command_line
-define('port', default='7380')
+define('port', default='9000')
 define('env', default=None)
 parse_command_line()
 

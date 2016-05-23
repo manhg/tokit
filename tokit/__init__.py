@@ -407,30 +407,30 @@ def start(port, config):
 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
-
-    def _graceful():
-        """
-        Schedule shutdown on next tick
-        """
-        def _shutdown():
-            http_server.stop()
-            ioloop.stop()
-            logger.info('Stopped')
-
-        ioloop.call_later(1, _shutdown)
-
-    def _on_term(*args):
-        ioloop.add_callback_from_signal(_graceful)
-
-    http_server.listen(port, 'localhost')
-    logger.info('Running PID {pid} @ localhost:{port}'.format(pid=os.getpid(), port=port))
+    http_server.listen(port, '::1')
+    logger.info('Running PID {pid} @ http://[::1]:{port}'.format(pid=os.getpid(), port=port))
 
     if config.graceful:
+        def _graceful():
+            """
+            Schedule shutdown on next tick
+            """
+            def _shutdown():
+                http_server.stop()
+                ioloop.stop()
+                logger.info('Stopped')
+
+            ioloop.call_later(1, _shutdown)
+
+        def _on_term(*args):
+            ioloop.add_callback_from_signal(_graceful)
+
         # Automatically kill if anything blocks the process
         signal.signal(signal.SIGTERM, _on_term)
         signal.signal(signal.SIGINT, _on_term)
         ioloop.set_blocking_log_threshold(1)
         ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
+
     try:
         Event.get('start').emit(app)
         ioloop.start()
