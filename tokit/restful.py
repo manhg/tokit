@@ -29,7 +29,8 @@ class Resource(ErrorMixin, JsonMixin, Api):
     @coroutine
     def get(self):  # list items
         t, q = self.db_prepare(self._restful_)
-        rows = yield self.db_query(q.fields('*'))
+        result = yield self.db_query(q.fields('*'))
+        rows = result.fetchall()
         self.encode(length=len(rows), items=rows)
 
     @coroutine

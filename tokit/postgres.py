@@ -21,6 +21,7 @@ def pg_init(app):
     """
     logging.getLogger('momoko').setLevel(logger.getEffectiveLevel())
     postgres = app.config.env['postgres']
+    postgres = app.config.env['postgres']
     app.pg_db = momoko.Pool(dsn=postgres.get('dsn'), size=postgres.getint('size'))
     app.pg_db.connect()
 
@@ -91,9 +92,10 @@ class PgMixin:
         query = statement
         if isinstance(query, Query):
             query = statement.select()
-        yield self.pg_db().execute(*query)
+        result = yield self.pg_db().execute(*query)
+        return result
 
-    def db_prepare(self, row_id=None):
+    def db_prepare(self, table, row_id=None):
         t = getattr(Table, table)
         q = Query(t)
         if row_id:
