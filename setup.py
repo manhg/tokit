@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
 tokit_version = '0.4.2'
@@ -18,8 +18,5 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-    ],
-    install_requires=[
-        'tornado',
     ]
 )
