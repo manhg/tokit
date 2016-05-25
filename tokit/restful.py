@@ -6,8 +6,14 @@ from tornado.web import HTTPError
 from tokit import Registry, Request, logger, Event
 from tokit.api import ErrorMixin, JsonMixin
 
+class Api(Request):
+    _route_ = None
 
-class Resource(ErrorMixin, JsonMixin, Request):
+    def get_request_dict(self, *args):
+        return self.data
+
+
+class Resource(ErrorMixin, JsonMixin, Api):
     """
     This must be subclass and mix with a DB Mixin which supports
     `db_query, db_update, db_insert` methods
@@ -33,7 +39,7 @@ class Resource(ErrorMixin, JsonMixin, Request):
         self.encode(ret=ret)
 
 
-class Item(ErrorMixin, JsonMixin, Request):
+class Item(ErrorMixin, JsonMixin, Api):
     _repo_ = 'Item'
     _prefix_ = '/restful'
     _restful_ = None

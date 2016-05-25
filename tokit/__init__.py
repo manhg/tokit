@@ -23,8 +23,7 @@ import tornado.websocket
 import tornado.netutil
 from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
-from tornado.testing import gen_test
-from tornado.testing import AsyncHTTPTestCase
+from tornado import testing
 
 logger = logging.getLogger('tokit')
 
@@ -126,7 +125,9 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
         return []
 
     def get_request_dict(self, *args):
-        """ Return dict of request arguments """
+        """
+        Return dict of request arguments, use with standard HTTP form
+         """
         return collections.OrderedDict(
             (field, self.get_body_argument(field, None)) for field in args)
 
@@ -281,7 +282,6 @@ class Config:
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         os.chdir(self.root_path)
-        HttpTest.app_src = self.root_path
         self.settings['static_path'] = os.path.join(self.root_path, self.settings['static_path'])
         lang_path = os.path.join(self.root_path, 'lang')
         if os.path.exists(lang_path):
@@ -356,27 +356,12 @@ class Config:
         logger.info('Autoloaded modules: %s', loaded)
 
 
-class HttpTest(AsyncHTTPTestCase):
+class AsyncHTTPTestCase(testing.AsyncHTTPTestCase):
 
-    _app = None
-
-    def get_app(self):
-        return self._app
-
-    @gen_test
-    def request(self, relative_url, check=None):
+    @testing.gen_test
+    def async_get(self, relative_url, check=None):
         abs_url = self.get_url(relative_url)
-        response = yield self.http_client.fetch(abs_url)
-        self.assertEquals(response.code, 200)
-        if check:
-            # Do additional check
-            check(self, response)
-        return response
-
-def init_http_test(app):
-    HttpTest._app = app
-
-Event.get('init').attach(init_http_test)
+        return self.http_client.fetch(abs_url)
 
 
 class App(tornado.web.Application):

@@ -54,11 +54,11 @@ class PgMixin:
         :return int row's id
         """
         if fields:
-            data = list(self.get_request_dict(*fields).values())
+            data = self.get_request_dict(*fields)
         else:
             fields = list(data.keys())
-            values = list(data.values())
         assert len(data) > 0  # check data
+        values = list(data.values())
 
         sql = 'INSERT INTO {} ({}) VALUES ({}) RETURNING id ' \
             .format(table,
