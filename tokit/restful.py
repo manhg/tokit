@@ -23,7 +23,7 @@ class Resource(ErrorMixin, JsonMixin, Api):
     """
 
     _repo_ = 'Resource'
-    _prefix_ = '/restful'
+    _prefix_ = '/api'
     _restful_ = None
 
     @coroutine
@@ -42,7 +42,7 @@ class Resource(ErrorMixin, JsonMixin, Api):
 
 class Item(ErrorMixin, JsonMixin, Api):
     _repo_ = 'Item'
-    _prefix_ = '/restful'
+    _prefix_ = '/api'
     _restful_ = None
 
     @coroutine
