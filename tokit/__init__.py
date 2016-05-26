@@ -186,7 +186,11 @@ class Module(tornado.web.UIModule, metaclass=Registry):
 
 
 class Static(tornado.web.StaticFileHandler):
-    ALLOW_TYPES = 'tag', 'js', 'css', 'png', 'jpg', 'svg', 'gif', 'zip', 'tar', 'tgz', 'txt'
+    ALLOW_TYPES = (
+        'tag', 'js', 'css',
+        'png', 'jpg', 'ico', 'svg', 'gif',
+        'zip', 'tar', 'tgz', 'txt'
+    )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
     def validate_absolute_path(self, root, absolute_path):
@@ -383,12 +387,22 @@ class App(tornado.web.Application):
         return app
 
 
+def module_static_handlers(app):
+    if not app.config.settings['debug']:
+        return
+    requests = Registry.known('Request')
+    for module in app.config.modules:
+        requests.append(URLSpec('^/static/%s/.+' % module, Static))
+
+
+
 def start(port, config):
     """
     Entry point for application.
     This setups IOLoop, load classes and run HTTP server
     """
     app = App.instance(config)
+    Event.get('after_init').attach(module_static_handlers)
 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()

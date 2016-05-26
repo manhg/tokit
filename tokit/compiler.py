@@ -71,7 +71,7 @@ class SassHandler(CompilerHandler):
             "CoffeeScript.compile", script, {'bare': bare})
 
 
-class JSCompilerHandler(CompilerHandler):
+class RiotHandler(CompilerHandler):
 
     libraries = [
         'vendor/riot.js'
@@ -92,19 +92,17 @@ class JSCompilerHandler(CompilerHandler):
 
 def urlspecs():
     return [
-        (r'^(/.+\.coffee)$', CoffeeHandler),
-        (r'^(/.+\.sass)$', SassHandler),
-        (r'^(/.+\.tag)$', RiotTagHandler),
+        # (r'^(/.+\.coffee)$', CoffeeHandler),
+        # (r'^(/.+\.sass)$', SassHandler),
+        (r'^(/.+\.tag)$', RiotHandler),
     ]
 
 
-def attach():
-    def _complier(app):
-        app.add_handlers('.*$', urlspecs())
-        app.root_path = app.config.root_path
+def init_complier(app):
+    app.add_handlers('.*$', urlspecs())
+    app.root_path = app.config.root_path
 
-    import tokit
-    tokit.Event.get('init').attach(_complier)
+
 
 if __name__ == "__main__":
     app = tornado.web.Application(urlspecs())
