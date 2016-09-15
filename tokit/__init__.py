@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
-import os
-import sys
-import re
-import collections
-import logging
-import time
-import signal
-import json
-import importlib
-import inspect
-import configparser
+import os, sys, re, collections, logging
+import time, signal, importlib, inspect, configparser
 from contextlib import contextmanager
 
-import shortuuid
 import tornado.locale
-import tornado.httpserver
+from tornado.httpserver import HTTPServer
 import tornado.web
 import tornado.websocket
 import tornado.netutil
-
 from tornado.ioloop import IOLoop
 from tornado import testing
+
+from tokit.utils import Event, AttributeDict, on, to_json
 
 logger = logging.getLogger('tokit')
 
@@ -196,70 +187,6 @@ class Static(tornado.web.StaticFileHandler):
     def get_content_version(cls, abspath):
         return super().get_content_version(abspath)[:6]
 
-
-class Event:
-    """
-    Event handlers storage.
-
-    Example:
-
-    >>> def handler(**kwargs):
-    ...     print("Triggered:", kwargs)
-    ...
-    >>> Event.get('some_thing_happened').attach(handler)
-    >>> Event.get('some_thing_happened').emit(status='OK')
-    Triggered: {'status': 'OK'}
-
-    """
-
-    _repo = {}
-
-    def __init__(self, name):
-        self.handlers = []
-        self.name = name
-
-    def attach(self, handler, priority=0):
-        handler._event_priority = priority
-        self.handlers.append(handler)
-        self.handlers.sort(key=lambda h: h._event_priority)
-
-    def detach(self, handler):
-        self.handlers.remove(handler)
-
-    @classmethod
-    def get(cls, name):
-        instance = cls._repo.get(name, None)
-        if not instance:
-            instance = cls(name)
-            cls._repo[name] = instance
-        return instance
-
-    @contextmanager
-    def subscribe(self, *handlers):
-        for handler in handlers:
-            self.attach(handlers)
-        try:
-            yield
-        finally:
-            for handlers in handlers:
-                self.detach(handlers)
-
-    def emit(self, *args, **kwargs):
-        for handler in self.handlers:
-            handler(*args, **kwargs)
-
-
-def on(event_name, priority=0):
-    def decorator(fn):
-        Event.get(event_name).attach(fn, priority)
-    return decorator
-
-
-class AttributeDict(dict):
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
-
-
 class Config:
     """ Subclass this to customize runtime config """
 
@@ -385,7 +312,7 @@ def start(host, port, config):
 
     app = App.instance(config)
 
-    http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
+    http_server = HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
     http_server.listen(port, host)
     logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))

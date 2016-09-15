@@ -92,8 +92,7 @@ class CassandraMixin:
 
     async def db_one(self, table, row_id):
         result = await self.cs_query(
-            f"SELECT * FROM {table} WHERE id = %s ",
-            row_id
+            "SELECT * FROM " + table + " WHERE id = %s ", row_id
         )
         if result:
             return serialize(result[0])

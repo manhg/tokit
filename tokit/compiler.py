@@ -43,11 +43,17 @@ class CoffeeHandler(CompilerHandler):
 
     def prepare(self):
         self.set_header('Content-Type', 'application/javascript')
+        self.context = execjs.get().compile(
+            read_file(os.path.dirname(__file__) + '/js/coffee-script.js')
+        )
 
     def compile(self, requested_file):
-        self.write(
-            coffeescript.compile_file(self.application.root_path + requested_file)
+        result = self.context.call(
+            "CoffeeScript.compile",
+            read_file(self.application.root_path + requested_file),
+            {'bare': True}
         )
+        self.write(result)
 
 
 class SassHandler(CompilerHandler):
@@ -62,47 +68,36 @@ class SassHandler(CompilerHandler):
         ))
 
 
-        '''
-        compile a Riot's tag code to a JavaScript code.
-        '''
-        if not hasattr(self, '_context'):
-            self._context = self._runtime.compile(self._compiler_script)
-        return self._context.call(
-            "CoffeeScript.compile", script, {'bare': bare})
-
-
 class RiotHandler(CompilerHandler):
-
-    libraries = [
-        'vendor/riot.js'
-    ]
 
     def prepare(self):
         self.set_header('Content-Type', 'application/javascript')
-        libraries = [
-            self.application.root_path + '/static/' + library
-            for library in self.libraries
-        ]
-        self.context = execjs.get().compile("\n".join(libraries))
+        self.context = execjs.get().compile(
+            read_file(os.path.dirname(__file__) + '/js/coffee-script.js') +
+            ";\n\n var exports = {}; module.exports = {};" +  # fake CommonJS environment
+            read_file(os.path.dirname(__file__) + '/js/riotc.js') + "; var riot = module.exports;"
+        )
 
     def compile(self, requested_file):
-        self.application.root_path + requested_file
-        self.write()
+        result = self.context.call(
+            "riot.compile",
+            read_file(self.application.root_path + requested_file),
+            True
+        )
+        self.write(result)
 
 
 def urlspecs():
     return [
-        # (r'^(/.+\.coffee)$', CoffeeHandler),
-        # (r'^(/.+\.sass)$', SassHandler),
-        (r'^(/.+\.tag)$', RiotHandler),
+        (r'^/static(/.+\.coffee)$', CoffeeHandler),
+        (r'^/static(/.+\.sass)$', SassHandler),
+        (r'^/static(/.+\.tag)$', RiotHandler),
     ]
 
 
 def init_complier(app):
     app.add_handlers('.*$', urlspecs())
     app.root_path = app.config.root_path
-
-
 
 if __name__ == "__main__":
     app = tornado.web.Application(urlspecs())

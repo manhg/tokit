@@ -1,0 +1,12 @@
+tornado
+fabric3
+pytest
+shortuuid
+
+sphinx
+
+PyExecJS
+libsass
+
+# momoko
+# cassandra-driver

@@ -7,7 +7,6 @@ This is a wrapper for Tornado:
 * Environments
 * Pre-configured Postgres and Cassandra support
 * Production level setting: kill if blocked
-* With a brother: https://github.com/manhgd/tofab deployment tool, systemd integration, operations (backup, sync, ...)
 
 
 Many time I start writing something in Tornado, it's not simple to make these fundamental thing. As a newbie to Python, I made these while I was learning how it work.
@@ -28,6 +27,7 @@ If a module interact with other modules, use tokit.Event for hooking.
 
 Changelog
 ---------
+* 0.6   Add email, generic tasks runner
 * 0.4.2 Support Coffeescript / SASS
 * 0.4.1 REST interface
 * 0.4.1 Cassandra support

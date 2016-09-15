@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="{{ locale.code }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {% block head %}{% end %}
+    {% block css %}
+        {% for path in handler.css() %}
+            <link rel="stylesheet" href="{{ static_url(path) }}" type="text/css" />
+        {% end %}
+    {% end %}
+</head>
+<body class="wrapper">
+    {% block top %}{% end %}
+    <div class="wrapper-body">
+        <main>
+        {% block body %}{% end %}
+        </main>
+    </div>
+
+    <footer>{% block bottom %}{% end %}</footer>
+
+    {% block js %}
+        {% for path in handler.js() %}
+            <script src="{{ static_url(path) }}" type="text/javascript"></script>
+        {% end %}
+    {% end %}
+    {% block inline %}{% end %}
+</body>
+</html>

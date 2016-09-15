@@ -1,0 +1,48 @@
+* { margin: 0; padding: 0; }
+body,div,span,li,button,input,select,textarea,dt,dl,a,p,th,td {
+  font-family: Arial,"Hiragino Maru Gothic ProN",Meiryo,TakaoPGothic,sans-serif;
+  font-size: 0.9rem;
+}
+button,input,select,textarea,p,th,td {
+  padding: 0.3rem;
+}
+input,select,textarea {
+  border: solid 1px;
+  border-color: darkgrey;
+}
+a {
+  text-decoration: none;
+  color: darkblue;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Sticky footer */
+.wrapper {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.wrapper-body {
+  flex: 1;
+}
+@media (max-width: 899px) {
+  .wrapper-body { width: 95vw; }
+}
+
+@media (min-width: 900px) {
+  .wrapper-body { width: 900px; }
+}
+main {
+  margin-top: 80px;
+}
+
+.full-width {
+  width: 100%;
+}
+button {
+  min-width: 5rem;
+}

@@ -101,14 +101,8 @@ class PgMixin:
         yield self.db.execute(sql, values)
 
     @coroutine
-    def pg_query(self, statement):
-        """
-        statement - a tuple (sql, params) or a sqlbuilder.Query instance
-        """
-        query = statement
-        if isinstance(query, Query):
-            query = statement.select()
-        result = yield self.db.execute(*query)
+    def pg_query(self, query, *params):
+        result = yield self.db.execute(query, params)
         return result
 
     def pg_serialize(self, row):

@@ -1,53 +1,12 @@
-import hashlib
-import random
 import binascii
-import subprocess
-from json import JSONEncoder
+import hashlib
+import json
+from contextlib import contextmanager
 from datetime import datetime
+from json import JSONEncoder
 from uuid import UUID
-import markdown
+import shortuuid
 
-class VersatileEncoder(JSONEncoder):
-    """
-    Encode all "difficult" object such as UUID
-    """
-
-    def _iterencode(self, obj, markers=None):
-
-        if isinstance(obj, tuple) and hasattr(obj, '_asdict'):
-            gen = self._iterencode_dict(obj._asdict(), markers)
-        else:
-            gen = JSONEncoder._iterencode(self, obj, markers)
-        for chunk in gen:
-            yield chunk
-
-    def default(self, obj):
-        if isinstance(obj, UUID):
-            return shortuuid.encode(obj)
-        elif isinstance(obj, datetime):
-            return str(obj)
-        else:
-            return JSONEncoder.default(self, obj)
-
-def to_json(obj):
-    return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
-
-def md_html(raw):
-    """ Convert Markdown format string to HTML """
-    html = markdown.markdown(raw.decode().strip())
-    return html
-
-def rand(length=16):
-    shortuuid.ShortUUID().random(length)
-
-def hash(secret, **kwargs):
-    kwargs = kwargs or dict(
-        salt=b'tokit',
-        iterations=82016,
-    )
-    # might be GIL dependent
-    dk = hashlib.pbkdf2_hmac('sha512', str.encode(secret), **kwargs)
-    return binascii.hexlify(dk).decode()
 
 class Event:
     """
@@ -110,3 +69,40 @@ def on(event_name, priority=0):
 class AttributeDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
+
+class VersatileEncoder(JSONEncoder):
+    """
+    Encode all "difficult" object such as UUID
+    """
+
+    def _iterencode(self, obj, markers=None):
+
+        if isinstance(obj, tuple) and hasattr(obj, '_asdict'):
+            gen = self._iterencode_dict(obj._asdict(), markers)
+        else:
+            gen = JSONEncoder._iterencode(self, obj, markers)
+        for chunk in gen:
+            yield chunk
+
+    def default(self, obj):
+        if isinstance(obj, UUID):
+            return shortuuid.encode(obj)
+        elif isinstance(obj, datetime):
+            return str(obj)
+        else:
+            return JSONEncoder.default(self, obj)
+
+def to_json(obj):
+    return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
+
+def rand(length=16):
+    shortuuid.ShortUUID().random(length)
+
+def hash(secret, **kwargs):
+    kwargs = kwargs or dict(
+        salt=b'tokit',
+        iterations=82016,
+    )
+    # might be GIL dependent
+    dk = hashlib.pbkdf2_hmac('sha512', str.encode(secret), **kwargs)
+    return binascii.hexlify(dk).decode()

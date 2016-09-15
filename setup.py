@@ -14,9 +14,11 @@ setup(
     download_url='https://github.com/manhg/tokit/tarball/' + tokit_version,
     keywords=['tornado', 'web', 'tokit'],
     install_requires = [
-        "tornado>=4.3"
+        "tornado>=4.3",
+        "shortuuid"
     ],
     classifiers=[
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ]
 )

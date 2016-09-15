@@ -72,7 +72,7 @@ def register_task_runner(app):
 async def send_email_consumer(app, receipt, body, subject=None):
     if not subject:
         # consider first line as subject
-        subject, body = body.split('\n', 1)
+        subject, body = body.split("\n", 1)
     msg = MIMEText(body, 'plain', 'utf-8')
     config = app.config.env['smtp']
     msg['Subject'] = Header(subject, 'utf-8')
