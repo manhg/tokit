@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""
-@manhgd/tokit
-A kit for development with Tornado web framework.
-"""
-
-import os, sys, subprocess
+import os
+import sys
 import re
 import collections
 import logging
@@ -16,20 +12,17 @@ import inspect
 import configparser
 from contextlib import contextmanager
 
+import shortuuid
 import tornado.locale
 import tornado.httpserver
 import tornado.web
 import tornado.websocket
 import tornado.netutil
-from tornado.gen import coroutine
+
 from tornado.ioloop import IOLoop
 from tornado import testing
 
 logger = logging.getLogger('tokit')
-
-
-def to_json(obj):
-    return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
 
 
 class Repo:
@@ -66,7 +59,7 @@ class Registry(type):
         # Instance object
         super(Registry, cls).__init__(name, bases, nmspc)
         # Register
-        repo_name = getattr(cls, '_repo_', None)
+        repo_name = getattr(cls, 'REPO', None)
         if not repo_name:
             *_, base_cls = bases
             repo_name = base_cls.__name__
@@ -94,12 +87,12 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
             pass
     """
 
-    _route_ = None
+    URL = None
     """
     Route can be pattern or (pattern, name) or an URLSpec::
 
         class Post(Request):
-            _route_ = r'/post/.*'
+            URL = r'/post/.*'
             def get(self, slug):
                 pass # Add logic here
     """
@@ -145,7 +138,7 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
         """
         routes = []
         for handler in Registry.known(cls.__name__):
-            route = getattr(handler, '_route_', None)
+            route = getattr(handler, 'URL', None)
             if not route:
                 if not handler.__module__.startswith('_'):
                     logger.debug("Missing route for handler %s.%s",
@@ -199,6 +192,10 @@ class Static(tornado.web.StaticFileHandler):
             raise tornado.web.HTTPError(403, 'Unallowed file type')
         return absolute_path
 
+    @classmethod
+    def get_content_version(cls, abspath):
+        return super().get_content_version(abspath)[:6]
+
 
 class Event:
     """
@@ -218,14 +215,16 @@ class Event:
     _repo = {}
 
     def __init__(self, name):
-        self._handlers = set()
+        self.handlers = []
         self.name = name
 
-    def attach(self, task):
-        self._handlers.add(task)
+    def attach(self, handler, priority=0):
+        handler._event_priority = priority
+        self.handlers.append(handler)
+        self.handlers.sort(key=lambda h: h._event_priority)
 
-    def detach(self, task):
-        self._handlers.remove(task)
+    def detach(self, handler):
+        self.handlers.remove(handler)
 
     @classmethod
     def get(cls, name):
@@ -236,18 +235,24 @@ class Event:
         return instance
 
     @contextmanager
-    def subscribe(self, *tasks):
-        for task in tasks:
-            self.attach(task)
+    def subscribe(self, *handlers):
+        for handler in handlers:
+            self.attach(handlers)
         try:
             yield
         finally:
-            for task in tasks:
-                self.detach(task)
+            for handlers in handlers:
+                self.detach(handlers)
 
     def emit(self, *args, **kwargs):
-        for handler in self._handlers:
+        for handler in self.handlers:
             handler(*args, **kwargs)
+
+
+def on(event_name, priority=0):
+    def decorator(fn):
+        Event.get(event_name).attach(fn, priority)
+    return decorator
 
 
 class AttributeDict(dict):
@@ -295,15 +300,10 @@ class Config:
         """ Load extra env config
         :param: list cfg_files relative path to project root
         """
-        self.env = configparser.ConfigParser()
-        main, *overrides = [os.path.join(self.root_path, f) for f in cfg_files]
+        main, *overrides = [os.path.join(self.root_path, '../config', f) for f in cfg_files]
         self.env.read_file(open(main))
         if len(overrides):
             self.env.read(overrides)
-
-        Event.get('env').emit(self.env)
-        self.setup()
-        Event.get('config').emit(self)
 
     def setup(self):
         self.graceful = self.env['app'].getboolean('graceful')
@@ -320,29 +320,28 @@ class Config:
         time.tzset()
         tornado.locale.set_default_locale(self.locale)
 
-
-    def set_env(self, env_name=None, config_path='../config'):
+    def set_env(self, env_name=None):
+        self.env = configparser.ConfigParser()
         self.env_name = env_name or os.environ.get('ENV', 'development')
-        try:
-            # Add common.ini if needed to share
-            self.read_ini([config_path + '/%s.ini' % self.env_name])
-        except FileNotFoundError as e:
-            logging.warning('Config file is not present')
+        self.read_ini(['base.ini', self.env_name + '.ini'])
         logging.info('Env: ' + self.env_name)
-
+        Event.get('env').emit(self.env)
+        self.setup()
+        Event.get('config').emit(self)
 
     def load_modules(self):
         """
         Import declared modules from config, during this imports, routes
         and other components will be registered
         """
-
         if not self.modules:
             # Search all modules as a dir,
             _, self.modules, _ = next(os.walk(self.root_path))
             # Exclude special dirnames
-            self.modules = [m for m in self.modules \
-                              if not (m.startswith('.') or m.startswith('_'))]
+            self.modules = [
+                m for m in self.modules
+                if not (m.startswith('.') or m.startswith('_'))
+            ]
         loaded = []
         for m in self.modules:
             try:
@@ -350,23 +349,14 @@ class Config:
                 loaded.append(m)
             except TypeError:
                 pass
-            except SyntaxError:
+            except SyntaxError as e:
                 ex = sys.exc_info()
                 logger.error("Broken module: %s %s %s", ex[0].__name__,
                              os.path.basename(
                                  sys.exc_info()[2].tb_frame.f_code.co_filename),
                              ex[2].tb_lineno)
-                sys.exit(1)
+                raise e
         logger.info('Autoloaded modules: %s', loaded)
-
-
-class AsyncHTTPTestCase(testing.AsyncHTTPTestCase):
-
-    @testing.gen_test
-    def async_get(self, relative_url, check=None):
-        abs_url = self.get_url(relative_url)
-        return self.http_client.fetch(abs_url)
-
 
 class App(tornado.web.Application):
     config = None
@@ -387,27 +377,18 @@ class App(tornado.web.Application):
         return app
 
 
-def module_static_handlers(app):
-    if not app.config.settings['debug']:
-        return
-    requests = Registry.known('Request')
-    for module in app.config.modules:
-        requests.append(URLSpec('^/static/%s/.+' % module, Static))
-
-
-
-def start(port, config):
+def start(host, port, config):
     """
     Entry point for application.
     This setups IOLoop, load classes and run HTTP server
     """
+
     app = App.instance(config)
-    Event.get('after_init').attach(module_static_handlers)
 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
-    http_server.listen(port, '::1')
-    logger.info('Running PID {pid} @ http://[::1]:{port}'.format(pid=os.getpid(), port=port))
+    http_server.listen(port, host)
+    logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))
 
     if config.graceful:
         def _graceful():

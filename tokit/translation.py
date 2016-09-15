@@ -2,10 +2,17 @@ import re
 import os
 from tornado.template import Loader, Template
 
+SHORTCUT_RE = [
+    (re.compile(rb'{\:\:(.*?)}', re.DOTALL),    rb'{{ _("\1") }}'),
+    (re.compile(rb'{\:(.*?)}', re.DOTALL),      rb'{{ _(\1) }}'),
+    (re.compile(rb'{=(.*?)}', re.DOTALL),       rb'{{ \1 }}'),
+]
+
 
 class CustomLoader(Loader):
     """
     Tornado's template preprocessor with translation shortcut.
+    Key must be in single line
 
         * ``{::key}`` -> ``{{ _("key") }}``
         * ``{:key}``-> ``{{ _(key) }}``
@@ -13,10 +20,10 @@ class CustomLoader(Loader):
     """
 
     def _custom_prepocessor(self, content):
-        _content = re.sub(r'{\:\:(.*?)}', r'{{ _("\1") }}', content, re.DOTALL)
-        _content = re.sub(r'{\:(.*?)}', r'{{ _(\1) }}', _content, re.DOTALL)
-        _content = re.sub(r'{=(.*?)}', r'{{ \1 }}', _content, re.DOTALL)
-        return _content
+        ret = content
+        for regex, replacement in SHORTCUT_RE:
+            ret = regex.sub(replacement, ret)
+        return ret
 
     def _create_template(self, name):
         path = os.path.join(self.root, name)
@@ -29,6 +36,7 @@ class CustomLoader(Loader):
 
 
 class TranslationMixin:
+
     def create_template_loader(self, template_path):
         settings = self.application.settings
         if "template_loader" in settings:
