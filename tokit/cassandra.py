@@ -3,6 +3,7 @@ import os
 from uuid import UUID
 
 import shortuuid
+import cassandra
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection as cqlengine_connection
 from cassandra.query import dict_factory
@@ -67,10 +68,18 @@ def serialize(row):
     return row
 
 
+class IntegrityError(BaseException):
+    """ this never happen because row will be overrided """
+    pass
+
+
 class CassandraMixin:
     """
     Reference: http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Session.execute_async
     """
+
+    DbIntegrityError = IntegrityError
+    DbError = cassandra.RequestExecutionException
 
     @property
     def cs_pool(self):
@@ -89,7 +98,7 @@ class CassandraMixin:
         cs_future.add_callbacks(_success, _fail)
         return future
 
-    async def db_one(self, table, row_id):
+    async def cs_one(self, table, row_id):
         result = await self.cs_query(
             "SELECT * FROM " + table + " WHERE id = %s ",
             row_id
@@ -97,7 +106,7 @@ class CassandraMixin:
         if result:
             return serialize(result[0])
 
-    async def db_upsert(self, table, **data):
+    async def cs_upsert(self, table, **data):
         id = data.get('id', UUID())
         cql = "UPDATE {table} SET ".format(table=table) + ", ".join([
             k + " = %s " for k in data.keys()
@@ -105,5 +114,15 @@ class CassandraMixin:
         result = await self.cs_query(cql, list(data.values()) + [data['id']])
         return result
 
-    db_insert = db_upsert
-    db_update = db_upsert
+    async def cs_insert(self, table, **data):
+        fields = data.keys()
+        cql = 'INSERT INTO {} ({}) VALUES ({})'.format(table,
+            ','.join(fields),
+            ','.join(['%s'] * len(fields))
+        )
+        result = await self.cs_query(cql, *list(data.values()))
+        return result
+
+    db_insert = cs_upsert
+    db_update = cs_upsert
+    db_one = cs_one
