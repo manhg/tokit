@@ -1,18 +1,15 @@
-#!/usr/bin/env python
-from __future__ import print_function
-
 import os
 import random
 import string
 
-from fabric.operations import local, put
-from fabric.context_managers import lcd, cd, hide
-from fabric.contrib.project import rsync_project
-from fabric.contrib.files import exists
-from fabric.decorators import runs_once
-from fabric.api import run, env, hosts
-from fabric.api import settings
-from fabric.colors import green, red
+from fabric3.operations import local, put
+from fabric3.context_managers import lcd, cd, hide
+from fabric3.contrib.project import rsync_project
+from fabric3.contrib.files import exists
+from fabric3.decorators import runs_once
+from fabric3.api import run, env, hosts
+from fabric3.api import settings
+from fabric3.colors import green, red
 from tokit.utils import rand
 
 # Skip using git, imply force deploy
