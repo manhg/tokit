@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 
-from .utils import rand
+from tokit.utils import make_rand
 
 
 def create_project(name):
