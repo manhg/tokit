@@ -95,10 +95,10 @@ class VersatileEncoder(JSONEncoder):
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
 
-def rand(length=16):
+def make_rand(length=16):
     shortuuid.ShortUUID().random(length)
 
-def hash(secret, **kwargs):
+def make_hash(secret, **kwargs):
     kwargs = kwargs or dict(
         salt=b'tokit',
         iterations=82016,
@@ -106,3 +106,17 @@ def hash(secret, **kwargs):
     # might be GIL dependent
     dk = hashlib.pbkdf2_hmac('sha512', str.encode(secret), **kwargs)
     return binascii.hexlify(dk).decode()
+
+try:
+    import markdown
+
+
+    def md_html(raw):
+        """
+        Convert Markdown format string to HTML
+        WARNING: Be careful of leading spaces
+        """
+        html = markdown.markdown(raw.decode())
+        return html
+except:
+    pass

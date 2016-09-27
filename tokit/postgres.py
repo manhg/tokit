@@ -60,15 +60,11 @@ class PgMixin:
     def pg_insert(self, table, fields=None, **data):
         """
         Postgres shorcut to insert data
+        :return int new row's id
 
         Example::
 
             user_id = yield self.pg_insert('users', {"username": "foo", "password": "secret"})
-
-        .. warning::
-            Must decorate caller method with ``tornado.gen.coroutine`` because this is async
-
-        :return int new row's id
         """
         if fields:
             data = self.get_request_dict(*fields)
@@ -86,22 +82,15 @@ class PgMixin:
         return cursor.fetchone()[0]
 
     @coroutine
-    def pg_update(self, table, row_id, data):
-        """
-        Postgres shorcut to update data.
-
-        .. warning::
-            Must decorate callee with ``tornado.gen.coroutine`` because this is async
-
-        """
+    def pg_update(self, table, data):
         changes = [field + ' = %s' for field in data.keys()]
         sql = 'UPDATE {} SET {} WHERE id = %s'.format(table, ','.join(changes))
-        values = list(data.values())
-        values.append(row_id)
+        values = list(data.values()) + [data['id']]
         yield self.db.execute(sql, values)
 
     @coroutine
     def pg_query(self, query, *params):
+        """ Low level execuation """
         result = yield self.db.execute(query, params)
         return result
 
@@ -112,25 +101,17 @@ class PgMixin:
         return ret
 
     @coroutine
-    def pg_select(self, statement):
-        result = yield self.pg_query(statement)
+    def pg_select(self, query, *params):
+        """ Query and convert result """
+        result = yield self.pg_query(query, *params)
         return [self.pg_serialize(row) for row in result.fetchall()]
 
     @coroutine
-    def pg_one(self, statement):
-        result = yield self.pg_query(statement)
+    def pg_one(self, query, *params):
+        result = yield self.pg_query(query, *params)
         row = result.fetchone()
         if row:
             return self.pg_serialize(row)
-
-    def db_prepare(self, table, row_id=None, slug=None):
-        t = getattr(Table, table)
-        q = Query(t)
-        if row_id:
-            q.where(t.id == row_id)
-        if slug:
-            q.where(t.slug == slug)
-        return t, q
 
     db_insert = pg_insert
     db_update = pg_update
@@ -146,13 +127,3 @@ class UidMixin:
         if 'id' in ret:
             ret['short_id'] = shortuuid.encode(uuid.UUID(ret['id']))
         return ret
-        
-class UidItem(PgMixin, api.Item):
-
-    def db_prepare(self, table, row_id=None):
-        uid = shortuuid.decode(row_id)
-        return super(UidItem, self).db_prepare(table, str(uid))
-
-
-class UidResource(PgMixin, api.Resource):
-    pass

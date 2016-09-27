@@ -1,12 +1,11 @@
 import logging
 import os
 from uuid import UUID
-import shortuuid
 
+import shortuuid
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection as cqlengine_connection
 from cassandra.query import dict_factory
-from tornado.gen import coroutine
 from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
 
@@ -92,11 +91,19 @@ class CassandraMixin:
 
     async def db_one(self, table, row_id):
         result = await self.cs_query(
-            "SELECT * FROM " + table + " WHERE id = %s ", row_id
+            "SELECT * FROM " + table + " WHERE id = %s ",
+            row_id
         )
         if result:
             return serialize(result[0])
 
-    async def db_insert(self, table, fields=None, **data):
-        pass
+    async def db_upsert(self, table, **data):
+        id = data.get('id', UUID())
+        cql = "UPDATE {table} SET ".format(table=table) + ", ".join([
+            k + " = %s " for k in data.keys()
+        ]) + "WHERE id = %s"
+        result = await self.cs_query(cql, list(data.values()) + [data['id']])
+        return result
 
+    db_insert = db_upsert
+    db_update = db_upsert

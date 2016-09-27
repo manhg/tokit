@@ -13,7 +13,8 @@ from tornado.web import HTTPError
 
 from cerberus import Validator
 
-from tokit import Registry, Request, Serializer, logger, on
+from tokit import Registry, Request, logger, on
+from tokit.utils import to_json
 
 SHORT_UUID_RE = '[\-a-zA-Z0-9]{22}'
 
@@ -30,8 +31,6 @@ class JsonMixin:
     * Support render whatever objects as JSON
     """
 
-    serializer = Serializer()
-
     def prepare(self):
         self.data = None
         if self.request.body:
@@ -45,7 +44,7 @@ class JsonMixin:
             raise ValueError('Lists not accepted for security reasons')
         self.set_header("Content-Type", "application/json; charset=UTF-8")
         ret = kwargs if not obj else obj
-        self.write(self.serializer.encode(ret))
+        self.write(to_json(ret))
 
 
 class ErrorMixin:
