@@ -82,10 +82,10 @@ try:
                 read_file(os.path.dirname(__file__) + '/js/riotc.js') + "; var riot = module.exports;"
             )
 
-        def compile(self, requested_file):
+        def compile(self, full_path):
             result = self.context.call(
                 "riot.compile",
-                read_file(self.application.root_path + requested_file),
+                read_file(full_path),
                 True
             )
             self.write(result)
