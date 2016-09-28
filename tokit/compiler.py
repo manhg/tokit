@@ -24,7 +24,10 @@ class CompilerHandler(tornado.web.RequestHandler):
 
     def get(self, requested_file):
         try:
-            self.compile(requested_file)
+            requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '/')
+            full_path = self.application.root_path + requested_path
+            # TODO check harmful path
+            self.compile(full_path)
         except Exception as e:
             self.set_status(400)
             self.write('/*')
@@ -39,13 +42,14 @@ try:
         def prepare(self):
             self.set_header('Content-Type', 'text/css')
 
-        def compile(self, requested_file):
+        def compile(self, full_path):
+
             self.write(sass.compile(
-                filename=self.application.root_path + requested_file,
+                filename=full_path,
                 output_style=('nested' if self.application.settings['debug'] else 'compressed')
             ))
 
-    COMPILER_URLS.append((r'^/static(/.+\.sass)$', SassHandler))
+    COMPILER_URLS.append((r'^(/.+\.sass)$', SassHandler))
 except ImportError:
     pass
 
@@ -60,10 +64,10 @@ try:
                 read_file(os.path.dirname(__file__) + '/js/coffee-script.js')
             )
 
-        def compile(self, requested_file):
+        def compile(self, full_path):
             result = self.context.call(
                 "CoffeeScript.compile",
-                read_file(self.application.root_path + requested_file),
+                read_file(full_path),
                 {'bare': True}
             )
             self.write(result)
@@ -87,8 +91,8 @@ try:
             self.write(result)
 
 
-    COMPILER_URLS.append((r'^/static(/.+\.coffee)$', CoffeeHandler))
-    COMPILER_URLS.append((r'^/static(/.+\.tag)$', RiotHandler))
+    COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
+    COMPILER_URLS.append((r'^(/.+\.tag)$', RiotHandler))
 except ImportError:
     pass
 
