@@ -90,7 +90,11 @@ class VersatileEncoder(JSONEncoder):
         elif isinstance(obj, datetime):
             return str(obj)
         else:
-            return JSONEncoder.default(self, obj)
+            try:
+                return JSONEncoder.default(self, obj)
+            except TypeError:
+                return str(obj)
+
 
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
