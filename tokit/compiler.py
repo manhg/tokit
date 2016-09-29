@@ -9,6 +9,8 @@ import io
 import tornado.ioloop
 import tornado.web
 from tornado.iostream import IOStream
+from tornado.gen import coroutine
+from tokit.tasks import ThreadPoolMixin, run_on_executor
 
 COMPILER_URLS = []
 
@@ -17,17 +19,18 @@ def read_file(filename):
         return fp.read()
 
 
-class CompilerHandler(tornado.web.RequestHandler):
+class CompilerHandler(ThreadPoolMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
         self.set_header('Server', 'Python3')
 
+    @coroutine
     def get(self, requested_file):
         try:
             requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '/')
             full_path = self.application.root_path + requested_path
             # TODO check harmful path
-            self.compile(full_path)
+            yield self.compile(full_path)
         except Exception as e:
             self.set_status(400)
             self.write('/*')
@@ -42,12 +45,13 @@ try:
         def prepare(self):
             self.set_header('Content-Type', 'text/css')
 
+        @run_on_executor
         def compile(self, full_path):
-
-            self.write(sass.compile(
+            result = sass.compile(
                 filename=full_path,
                 output_style=('nested' if self.application.settings['debug'] else 'compressed')
-            ))
+            )
+            self.write(result)
 
     COMPILER_URLS.append((r'^(/.+\.sass)$', SassHandler))
 except ImportError:
@@ -55,35 +59,34 @@ except ImportError:
 
 try:
     import execjs
+    js_context = execjs.get().compile(
+        read_file(os.path.dirname(__file__) + '/js/coffee-script.js')
+    )
+    riot_context = execjs.get().compile(
+        read_file(os.path.dirname(__file__) + '/js/coffee-script.js') +
+        ";\n\n var exports = {}; module.exports = {};" +  # fake CommonJS environment
+        read_file(os.path.dirname(__file__) + '/js/riotc.js') + "; var riot = module.exports;"
+    )
 
     class CoffeeHandler(CompilerHandler):
 
         def prepare(self):
             self.set_header('Content-Type', 'application/javascript')
-            self.context = execjs.get().compile(
-                read_file(os.path.dirname(__file__) + '/js/coffee-script.js')
-            )
 
+        @run_on_executor
         def compile(self, full_path):
-            result = self.context.call(
+            result = js_context.call(
                 "CoffeeScript.compile",
                 read_file(full_path),
                 {'bare': True}
             )
             self.write(result)
 
-    class RiotHandler(CompilerHandler):
+    class RiotHandler(CoffeeHandler):
 
-        def prepare(self):
-            self.set_header('Content-Type', 'application/javascript')
-            self.context = execjs.get().compile(
-                read_file(os.path.dirname(__file__) + '/js/coffee-script.js') +
-                ";\n\n var exports = {}; module.exports = {};" +  # fake CommonJS environment
-                read_file(os.path.dirname(__file__) + '/js/riotc.js') + "; var riot = module.exports;"
-            )
-
+        @run_on_executor
         def compile(self, full_path):
-            result = self.context.call(
+            result = riot_context.call(
                 "riot.compile",
                 read_file(full_path),
                 True

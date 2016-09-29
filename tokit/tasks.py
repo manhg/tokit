@@ -7,6 +7,7 @@ from inspect import iscoroutinefunction
 from email.mime.text import MIMEText
 import smtplib
 from email.header import Header
+from tornado.concurrent import run_on_executor
 
 tasks_queue = PriorityQueue()
 
@@ -94,3 +95,16 @@ class EmailMixin:
             template, **kwargs
         ).decode()
         put('send_email', receipt, content)
+
+
+class ThreadPoolMixin:
+    """ Mix this and wrap blocking function with `run_on_executor` """
+
+    _executor = None
+
+    @property
+    def executor(self):
+        if not self._executor:
+            max_thread_worker = self.application.config.env['app'].get('max_thread_worker', 16)
+            self._executor = ThreadPoolExecutor(max_workers=max_thread_worker)
+        return self._executor
