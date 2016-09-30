@@ -1,6 +1,6 @@
 import logging
 import os
-from uuid import UUID
+import uuid
 
 import shortuuid
 import cassandra
@@ -85,9 +85,9 @@ class CassandraMixin:
     def cs_pool(self):
         return self.application.cs_pool
 
-    def cs_query(self, cql, *args):
+    def cs_query(self, cql, params=None):
         future = Future()
-        cs_future = self.cs_pool.execute_async(cql, args)
+        cs_future = self.cs_pool.execute_async(cql, params)
 
         def _success(result):
             IOLoop.instance().add_callback(future.set_result, result)
@@ -101,17 +101,17 @@ class CassandraMixin:
     async def cs_one(self, table, row_id):
         result = await self.cs_query(
             "SELECT * FROM " + table + " WHERE id = %s ",
-            row_id
+            [row_id]
         )
         if result:
             return serialize(result[0])
 
-    async def cs_upsert(self, table, **data):
-        id = data.get('id', UUID())
+    async def cs_update(self, table, primary_key, **data):
+        id = data.get(primary_key)
         cql = "UPDATE {table} SET ".format(table=table) + ", ".join([
             k + " = %s " for k in data.keys()
-        ]) + "WHERE id = %s"
-        result = await self.cs_query(cql, list(data.values()) + [data['id']])
+        ]) + "WHERE " + primary_key + " = %s"
+        result = await self.cs_query(cql, list(data.values()) + [id, ])
         return result
 
     async def cs_insert(self, table, **data):
@@ -120,9 +120,9 @@ class CassandraMixin:
             ','.join(fields),
             ','.join(['%s'] * len(fields))
         )
-        result = await self.cs_query(cql, *list(data.values()))
+        result = await self.cs_query(cql, list(data.values()))
         return result
 
-    db_insert = cs_upsert
-    db_update = cs_upsert
+    db_insert = cs_insert
+    db_update = cs_update
     db_one = cs_one

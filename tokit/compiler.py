@@ -10,6 +10,7 @@ import tornado.ioloop
 import tornado.web
 from tornado.iostream import IOStream
 from tornado.gen import coroutine
+from tornado.web import HTTPError
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 
 COMPILER_URLS = []
@@ -29,6 +30,8 @@ class CompilerHandler(ThreadPoolMixin, tornado.web.RequestHandler):
         try:
             requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '/')
             full_path = self.application.root_path + requested_path
+            if not os.path.exists(full_path):
+                raise HTTPError(404)
             # TODO check harmful path
             yield self.compile(full_path)
         except Exception as e:
