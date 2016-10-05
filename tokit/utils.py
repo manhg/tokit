@@ -65,11 +65,6 @@ def on(event_name, priority=0):
         Event.get(event_name).attach(fn, priority)
     return decorator
 
-
-class AttributeDict(dict):
-    __getattr__ = dict.__getitem__
-    __setattr__ = dict.__setitem__
-
 class VersatileEncoder(JSONEncoder):
     """
     Encode all "difficult" object such as UUID

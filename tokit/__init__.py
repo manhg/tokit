@@ -11,7 +11,7 @@ import tornado.netutil
 from tornado.ioloop import IOLoop
 from tornado import testing
 
-from tokit.utils import Event, AttributeDict, on, to_json
+from tokit.utils import Event, on, to_json
 
 logger = logging.getLogger('tokit')
 
@@ -199,7 +199,6 @@ class Config:
         compiled_template_cache=False,
         cookie_secret='TODO'
     )
-    x = AttributeDict()
     root_path = None
     graceful = True
     timezone = 'UTC'
