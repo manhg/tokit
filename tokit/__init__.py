@@ -9,6 +9,7 @@ import tornado.web
 import tornado.websocket
 import tornado.netutil
 from tornado.ioloop import IOLoop
+from tornado.autoreload import add_reload_hook
 from tornado import testing
 
 from tokit.utils import Event, on, to_json, make_rand
@@ -224,8 +225,8 @@ class Config:
         self.graceful = self.env['app'].getboolean('graceful')
         boolenv = self.env['app'].getboolean
         self.settings['debug'] = boolenv('debug')
-        self.settings['compiled_template_cache'] = boolenv('compiled_template_cache', True)
-        self.settings['static_hash_cache'] = boolenv('static_hash_cache', True)
+        self.settings['compiled_template_cache'] = boolenv('compiled_template_cache', self.settings['debug'])
+        self.settings['static_hash_cache'] = boolenv('static_hash_cache', self.settings['debug'])
         self.settings['compress_response'] = boolenv('compress_response', True)
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret', make_rand())
 
@@ -301,7 +302,6 @@ class App(tornado.web.Application):
         Event.get('after_init').emit(app)
         return app
 
-
 def start(host, port, config):
     """
     Entry point for application.
@@ -314,6 +314,15 @@ def start(host, port, config):
     ioloop = IOLoop.instance()
     http_server.listen(port, host)
     logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))
+    
+    def _reload():
+        """ reload Python code should also clear cache """
+        Assets.reset()
+        with Request._template_loader_lock:
+            for loader in Request._template_loaders.values():
+                loader.reset()
+    
+    add_reload_hook(_reload)
 
     if config.graceful:
         def _graceful():
