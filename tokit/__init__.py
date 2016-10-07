@@ -11,7 +11,7 @@ import tornado.netutil
 from tornado.ioloop import IOLoop
 from tornado import testing
 
-from tokit.utils import Event, on, to_json
+from tokit.utils import Event, on, to_json, make_rand
 
 logger = logging.getLogger('tokit')
 
@@ -169,7 +169,7 @@ class Module(tornado.web.UIModule, metaclass=Registry):
         return {c.__name__: c for c in Registry.known(cls.__name__)}
 
 
-class Static(tornado.web.StaticFileHandler):
+class Assets(tornado.web.StaticFileHandler):
     ALLOW_TYPES = (
         'tag', 'js', 'css',
         'png', 'jpg', 'ico', 'svg', 'gif',
@@ -191,26 +191,18 @@ class Config:
     """ Subclass this to customize runtime config """
 
     settings = dict(
-        compress_response=True,
         static_path='.',
         static_url_prefix='/static/',
-        static_handler_class=Static,
-        debug=True,
-        compiled_template_cache=False,
-        cookie_secret='TODO'
+        static_handler_class=Assets
     )
     root_path = None
     graceful = True
     timezone = 'UTC'
-    locale = 'en'
 
     modules = None
     """ List of dirname, as a module """
 
-    kill_blocking = 2
     """ (second) time to kill process if blocking too long """
-
-    session_timeout = 60 * 24 * 3600
     env_name = None
     env = {}
 
@@ -218,9 +210,6 @@ class Config:
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         os.chdir(self.root_path)
         self.settings['static_path'] = os.path.join(self.root_path, self.settings['static_path'])
-        lang_path = os.path.join(self.root_path, 'lang')
-        if os.path.exists(lang_path):
-            tornado.locale.load_translations(lang_path)
 
     def read_ini(self, cfg_files=None):
         """ Load extra env config
@@ -233,18 +222,28 @@ class Config:
 
     def setup(self):
         self.graceful = self.env['app'].getboolean('graceful')
-        self.settings['debug'] = self.env['app'].getboolean('debug')
+        boolenv = self.env['app'].getboolean
+        self.settings['debug'] = boolenv('debug')
+        self.settings['compiled_template_cache'] = boolenv('compiled_template_cache', True)
+        self.settings['static_hash_cache'] = boolenv('static_hash_cache', True)
+        self.settings['compress_response'] = boolenv('compress_response', True)
+        self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret', make_rand())
+
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
         logger.setLevel(log_level)
 
-        self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret')
         dns_resolver = self.env['app'].get('dns_resolver', 'tornado.netutil.ThreadedResolver')
         tornado.netutil.Resolver.configure(dns_resolver)
 
         os.environ['TZ'] = self.timezone
         time.tzset()
-        tornado.locale.set_default_locale(self.locale)
+        
+        locale_name = self.env['app'].get('locale', 'en')
+        tornado.locale.set_default_locale(locale_name)
+        lang_path = os.path.join(self.root_path, 'lang')
+        if os.path.exists(lang_path):
+            tornado.locale.load_translations(lang_path)
 
     def set_env(self, env_name=None):
         self.env = configparser.ConfigParser()
@@ -335,7 +334,8 @@ def start(host, port, config):
         signal.signal(signal.SIGTERM, _on_term)
         signal.signal(signal.SIGINT, _on_term)
         ioloop.set_blocking_log_threshold(1)
-        ioloop.set_blocking_signal_threshold(config.kill_blocking, action=None)
+        time_to_kill = config['env']['app'].get('kill_blocking_sec', 2)
+        ioloop.set_blocking_signal_threshold(time_to_kill, action=None)
 
     try:
         Event.get('start').emit(app)
