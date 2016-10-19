@@ -1,12 +1,19 @@
 import re
 import os
-from tornado.template import Loader, Template
+from tornado.template import Loader, Template, ParseError
+from tornado.locale import load_translations
+from tokit.utils import on
 
 SHORTCUT_RE = [
-    (re.compile(rb'{\:\:(.*?)}', re.DOTALL),    rb'{{ _("\1") }}'),
-    (re.compile(rb'{\:(.*?)}', re.DOTALL),      rb'{{ _(\1) }}'),
-    (re.compile(rb'{=(.*?)}', re.DOTALL),       rb'{{ \1 }}'),
+    (re.compile(rb'{\*\s*([\w\_]+)\s+(.*?)\*}', re.DOTALL), rb'{{ _("\1").format(\2) }}'),
+    (re.compile(rb'{\*\s*([\w\_]+)\s*\*}', re.DOTALL),              rb'{{ _("\1") }}'),
 ]
+
+def init_locale(config):
+    for m in config.modules_loaded:
+        lang_path = os.path.join(config.root_path, m, 'lang')
+        if os.path.exists(lang_path):
+            load_translations(lang_path)
 
 
 class CustomLoader(Loader):
@@ -14,9 +21,8 @@ class CustomLoader(Loader):
     Tornado's template preprocessor with translation shortcut.
     Key must be in single line
 
-        * ``{::key}`` -> ``{{ _("key") }}``
-        * ``{:key}``-> ``{{ _(key) }}``
-        * ``{=expr}``-> ``{{ expr }}``
+        * ``{* key | name=value *}``-> ``{{ _("key").format(name=value) }}``
+        * ``{* key *}``-> ``{{ _("key") }}``
     """
 
     def _custom_prepocessor(self, content):
@@ -28,11 +34,15 @@ class CustomLoader(Loader):
     def _create_template(self, name):
         path = os.path.join(self.root, name)
         with open(path, "rb") as f:
-            template = Template(
-                self._custom_prepocessor(f.read()),
-                name=name, loader=self,
-                compress_whitespace=False)
-            return template
+            try:
+                template = Template(
+                    self._custom_prepocessor(f.read()),
+                    name=name, loader=self,
+                    compress_whitespace=False)
+                return template
+            except ParseError as exception:
+                exception.args = exception.args + (path, )
+                raise
 
 
 class TranslationMixin:

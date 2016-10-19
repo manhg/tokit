@@ -242,9 +242,6 @@ class Config:
         
         locale_name = self.env['app'].get('locale', 'en')
         tornado.locale.set_default_locale(locale_name)
-        lang_path = os.path.join(self.root_path, 'lang')
-        if os.path.exists(lang_path):
-            tornado.locale.load_translations(lang_path)
 
     def set_env(self, env_name=None):
         self.env = configparser.ConfigParser()
@@ -273,8 +270,6 @@ class Config:
             try:
                 importlib.import_module(m)
                 loaded.append(m)
-            except TypeError:
-                pass
             except SyntaxError as e:
                 ex = sys.exc_info()
                 logger.error("Broken module: %s %s %s", ex[0].__name__,
@@ -282,7 +277,7 @@ class Config:
                                  sys.exc_info()[2].tb_frame.f_code.co_filename),
                              ex[2].tb_lineno)
                 raise e
-        logger.info('Autoloaded modules: %s', loaded)
+        self.modules_loaded = loaded
 
 class App(tornado.web.Application):
     config = None

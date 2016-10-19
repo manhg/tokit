@@ -1,12 +1,14 @@
 from tokit import Request
 from tokit.utils import on
 from tokit.compiler import init_complier
+from tokit.translation import init_locale, TranslationMixin
 
 @on('init')
-def setup(app):
+def init(app):
     init_complier(app)
+    init_locale(app.config)
 
-class Home(Request):
+class Home(TranslationMixin, Request):
 
     URL = '/'
 
