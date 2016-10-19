@@ -10,7 +10,9 @@ from cassandra.query import dict_factory
 from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
 
+
 import tokit
+from tokit.utils import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +42,17 @@ def cassandra_init(app):
     logger.debug('%s', hosts)
 
     # for use with controllers
-    cluster = Cluster(
+    app.cs_cluster = Cluster(
         contact_points=hosts,
         port=int(config.get('port')),
         connect_timeout=1,
     )
-    keyspace = app.config.env['cassandra'].get('keyspace')
-    session = cluster.connect(keyspace)
-    session.row_factory = dict_factory
-    app.cs_pool = session
+    app.cs_keyspace = config.get('keyspace')
     
     # for use with object mapper
     cqlengine_connection.setup(
         hosts,
-        default_keyspace=config.get('keyspace'),
+        default_keyspace=app.cs_keyspace,
         lazy_connect=True, retry_connect=True
     )
     # Further hook
@@ -81,9 +80,11 @@ class CassandraMixin:
     DbIntegrityError = IntegrityError
     DbError = cassandra.RequestExecutionException
 
-    @property
+    @cached_property
     def cs_pool(self):
-        return self.application.cs_pool
+        session = self.application.cs_cluster.connect(self.application.cs_keyspace)
+        session.row_factory = dict_factory
+        return session
 
     def cs_query(self, cql, params=None):
         future = Future()
