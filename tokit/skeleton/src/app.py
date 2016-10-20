@@ -6,7 +6,7 @@ import tokit
 
 def main():
     opts.define('host', default='::1')
-    opts.define('port', default='9091')
+    opts.define('port', default='9000')
     opts.define('env', default=None)
     opts.parse_command_line()
 

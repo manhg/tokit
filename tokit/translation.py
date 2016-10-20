@@ -1,7 +1,9 @@
 import re
 import os
+from collections import ChainMap, defaultdict
+
 from tornado.template import Loader, Template, ParseError
-from tornado.locale import load_translations
+from tornado import locale
 from tokit.utils import on
 
 SHORTCUT_RE = [
@@ -10,16 +12,30 @@ SHORTCUT_RE = [
 ]
 
 def init_locale(config):
+    """
+    Load per-module `lang` folder CSV translations
+    """
+    chain = defaultdict(lambda: defaultdict(ChainMap))
+
     for m in config.modules_loaded:
         lang_path = os.path.join(config.root_path, m, 'lang')
-        if os.path.exists(lang_path):
-            load_translations(lang_path)
+        if not os.path.exists(lang_path):
+            continue
+        locale.load_translations(lang_path)
+
+        # old translations is overrided by a `load` call,
+        # so this is a hack to chain all mobule's translations into bigger one
+        for lang, plurals in locale._translations.items():
+            for plural, translation in plurals.items():
+                chain[lang][plural].maps.append(translation)
+
+    locale._translations = chain
+    locale._supported_locales = frozenset(list(chain.keys()) + [locale._default_locale])
 
 
 class CustomLoader(Loader):
     """
     Tornado's template preprocessor with translation shortcut.
-    Key must be in single line
 
         * ``{* key | name=value *}``-> ``{{ _("key").format(name=value) }}``
         * ``{* key *}``-> ``{{ _("key") }}``
