@@ -125,16 +125,13 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
 
     @classmethod
     def known(cls):
-        """ Get Request's subclasses
-        TODO add weight or ordering important routes
-        """
+        """ Get Request's subclasses """
         routes = []
         for handler in Registry.known(cls.__name__):
             route = getattr(handler, 'URL', None)
             if not route:
-                if not handler.__module__.startswith('_'):
-                    logger.debug("Missing route for handler %s.%s",
-                                 handler.__module__, handler.__name__)
+                logger.debug("Missing route for handler %s.%s",
+                             handler.__module__, handler.__name__)
                 continue
             if isinstance(route, str):
                 routes.append(tornado.web.URLSpec(route, handler))
