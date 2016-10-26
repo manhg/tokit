@@ -1,16 +1,16 @@
 import os
-import random
+import contextlib
 import string
 
-from fabric3.operations import local, put
-from fabric3.context_managers import lcd, cd, hide
-from fabric3.contrib.project import rsync_project
-from fabric3.contrib.files import exists
-from fabric3.decorators import runs_once
-from fabric3.api import run, env, hosts
-from fabric3.api import settings
-from fabric3.colors import green, red
-from tokit.utils import rand
+from fabric.operations import local, put
+from fabric.context_managers import lcd, cd, hide
+from fabric.contrib.project import rsync_project
+from fabric.contrib.files import exists
+from fabric.decorators import runs_once
+from fabric.api import run, env, hosts
+from fabric.api import settings
+from fabric.colors import green, red
+from tokit.utils import  make_rand as rand
 
 # Skip using git, imply force deploy
 SKIP_PREPARE = os.environ.get('SKIP_PREPARE', False)
@@ -197,7 +197,7 @@ class _X:
     remote_path = '/home/'
     wait = 3
     excludes = ('.*', 'tmp', '__pycache__', '*.pyc', 'upload', 'cache')
-    dirs = ['config', 'src', 'doc']
+    dirs = ['config', 'src']
 
 
 env.x = _X()
@@ -227,7 +227,7 @@ def sync(dirs=None):
     else:
         dirs = env.x.dirs
     for d in dirs:
-        fab_project.rsync_project(
+        rsync_project(
             remote_dir=env.x.remote_path, local_dir=d,
             exclude=env.x.excludes,
             extra_opts='--delete-after'
@@ -243,8 +243,6 @@ def backend(action='restart'):
             action=action,
             app=env.x.app,
             port=env.x.base_port + instance))
-        time.sleep(env.x.wait)
-
 
 def config():
     """ (3) Link configs """
@@ -329,7 +327,7 @@ def find_files(directory, patterns):
                     yield (root, basename)
 
 def up_project():
-    fab_project.rsync_project(
+    rsync_project(
         remote_dir=env.x.remote_path, local_dir='src',
         upload=True, extra_opts='-a ', exclude=('__pycache__'))
 

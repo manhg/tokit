@@ -3,6 +3,6 @@ document.addEventListener "DOMContentLoaded", ->
   riot.mount 'x-boxes',
     name: 'intergated'
     items: [
-      {title: 'Coffeescript', value:'js'},
-      {title: 'RiotJS', value:'tag'}
+      {title: 'Coffeescript', value: 'js'},
+      {title: 'RiotJS', value: 'tag'}
     ]
