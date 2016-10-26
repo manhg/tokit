@@ -8,7 +8,6 @@ from psycopg2.extras import DictRow
 import psycopg2.extensions
 
 from tornado.gen import coroutine
-from sqlbuilder.smartsql import Table, Query
 
 import tokit
 from tokit import api
