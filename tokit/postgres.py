@@ -3,8 +3,7 @@ import shortuuid
 import uuid
 
 import momoko
-from psycopg2.extras import DictCursor
-from psycopg2.extras import DictRow
+from psycopg2.extras import DictCursor, DictRow, register_uuid
 import psycopg2.extensions
 
 from tornado.gen import coroutine
@@ -42,6 +41,7 @@ def pg_init(app):
         cursor_factory=(DictLogCursor if env.getboolean('log') else DictCursor),
         # connection_factory=env.get('connection_factory', None),
     )
+    register_uuid()
     app.pg_db = momoko.Pool(**momoko_opts)
     app.pg_db.connect()
 
