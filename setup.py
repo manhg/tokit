@@ -1,7 +1,7 @@
 from setuptools import setup
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.6.9'
+tokit_version = '0.6.10'
 
 setup(
     name='tokit',
