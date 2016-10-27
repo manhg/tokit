@@ -98,14 +98,17 @@ def to_json(obj):
 def make_rand(length=16):
     return shortuuid.ShortUUID().random(length)
 
-def make_hash(secret, **kwargs):
+def make_hash(secret, as_binary=False, **kwargs):
     kwargs = kwargs or dict(
         salt=b'tokit',
         iterations=82016,
     )
     # might be GIL dependent
     dk = hashlib.pbkdf2_hmac('sha512', str.encode(secret), **kwargs)
-    return binascii.hexlify(dk).decode()
+    if as_binary:
+        return dk
+    else:
+        return binascii.hexlify(dk).decode()
 
 try:
     import markdown
