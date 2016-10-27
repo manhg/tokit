@@ -96,7 +96,7 @@ def to_json(obj):
     return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
 
 def make_rand(length=16):
-    shortuuid.ShortUUID().random(length)
+    return shortuuid.ShortUUID().random(length)
 
 def make_hash(secret, **kwargs):
     kwargs = kwargs or dict(

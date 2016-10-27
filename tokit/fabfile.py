@@ -1,6 +1,7 @@
 import os
 import contextlib
 import string
+from tempfile import NamedTemporaryFile
 
 from fabric.operations import local, put
 from fabric.context_managers import lcd, cd, hide
@@ -10,7 +11,8 @@ from fabric.decorators import runs_once
 from fabric.api import run, env, hosts
 from fabric.api import settings
 from fabric.colors import green, red
-from tokit.utils import  make_rand as rand
+from tokit.utils import make_rand as rand
+
 
 # Skip using git, imply force deploy
 SKIP_PREPARE = os.environ.get('SKIP_PREPARE', False)
@@ -352,7 +354,7 @@ def pg_dump_schema(db=None):
 
 
 def pg_up_schema():
-    with _Temp(delete=False, suffix='.dat') as tmp:
+    with NamedTemporaryFile(delete=False, suffix='.dat') as tmp:
         local(
             ("pg_dump --schema-only "
             "--no-owner --no-acl --no-privileges "
@@ -364,7 +366,7 @@ def pg_up_schema():
 
 
 def pg_up_data():
-    with _Temp(delete=False, suffix='.dat') as tmp:
+    with NamedTemporaryFile(delete=False, suffix='.dat') as tmp:
         local(
             ("pg_dump --data-only "
             "--no-owner --no-acl --no-privileges "
@@ -384,20 +386,20 @@ def pg_setup():
     with open('config/production.ini', 'a') as f:
         lines = [
             '[postgres]',
-            'dsn=user={app} dbname={app} password={passwd}'.format(app=env.x.app, passwd=passwd),
+            'dsn=user={db} dbname={db} password={passwd}'.format(db=env.x.db, passwd=passwd),
             'size=4'
         ]
         for line in lines:
             f.write(line + "\n")
     with_root()
     sql_file = '/tmp/' + rand() + '.sql'
-    with _Temp(suffix='.sql') as tmp:
+    with NamedTemporaryFile(suffix='.sql') as tmp:
         with open(tmp.name, 'w') as f:
             sql = """
-                CREATE USER {app} WITH PASSWORD '{passwd}';
-                CREATE DATABASE {app} ENCODING='UTF8';
-                GRANT ALL PRIVILEGES ON DATABASE {app} TO {app}
-                """.format(passwd=passwd, app=env.x.app)
+                CREATE USER {db} WITH PASSWORD '{passwd}';
+                CREATE DATABASE {db} ENCODING='UTF8';
+                GRANT ALL PRIVILEGES ON DATABASE {db} TO {db}
+                """.format(passwd=passwd, db=env.x.db)
             f.write(sql)
             f.flush()
             put(tmp.name, sql_file)
