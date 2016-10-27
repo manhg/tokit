@@ -1,3 +1,4 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 
 from tornado.queues import PriorityQueue, QueueEmpty
@@ -82,7 +83,8 @@ async def send_email_consumer(app, receipt, body, subject=None):
     with smtplib.SMTP(config['host'], config.get('port')) as mailer:
         if config.getboolean('tls'):
             mailer.starttls()
-        mailer.login(config['user'], config['password'])
+        if config.get('user'):
+            mailer.login(config.get('user'), config['password'])
         mailer.send_message(msg)
         mailer.quit()
     logger.debug("Sent email to %s", receipt)
@@ -92,7 +94,7 @@ class EmailMixin:
 
     def send_email(self, template, receipt, **kwargs):
         content = self.render_string(
-            template, **kwargs
+            os.path.join(self.application.root_path, template), **kwargs
         ).decode()
         put('send_email', receipt, content)
 
