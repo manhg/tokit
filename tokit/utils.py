@@ -66,6 +66,12 @@ def on(event_name, priority=0):
         Event.get(event_name).attach(fn, priority)
     return decorator
 
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self.__dict__ = self
+
 class VersatileEncoder(JSONEncoder):
     """
     Encode all "difficult" object such as UUID
@@ -94,6 +100,9 @@ class VersatileEncoder(JSONEncoder):
 
 def to_json(obj):
     return json.dumps(obj, ensure_ascii=False, cls=VersatileEncoder).replace("</", "<\\/")
+
+def from_json(s):
+    return AttrDict(json.loads(s))
 
 def make_rand(length=16):
     return shortuuid.ShortUUID().random(length)

@@ -124,5 +124,5 @@ class UidMixin:
     def pg_serialize(self, row):
         ret = PgMixin.pg_serialize(self, row)
         if 'id' in ret:
-            ret['short_id'] = shortuuid.encode(uuid.UUID(ret['id']))
+            ret['short_id'] = shortuuid.encode(ret['id'])
         return ret
