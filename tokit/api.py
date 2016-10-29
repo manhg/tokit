@@ -1,3 +1,4 @@
+import re
 import json
 import traceback
 import functools
@@ -174,7 +175,6 @@ class ValidationError(HTTPError):
         self.reason = 'Validation failed {}'.format(', '.join(tuple(errors.keys())))
         self.detail = errors
 
-
 class ValidatorMixin:
 
     SCHEMA = None
@@ -194,7 +194,7 @@ class CreateMixin(ValidatorMixin):
     """
 
     @coroutine
-    def on_validated(self, data):
+    def on_create(self, data):
         inserted_id = yield self.db_insert(self.TABLE, **data)
         return inserted_id
 
@@ -202,7 +202,7 @@ class CreateMixin(ValidatorMixin):
     def post(self):
         self.validate()
         try:
-            ret = yield self.on_validated(self.validator.document)
+            ret = yield self.on_create(self.validator.document)
         except self.DbIntegrityError as e:
             self.set_status(400)
             self.write_json({'reason': str(e)})
@@ -222,7 +222,7 @@ class UpdateMixin(ValidatorMixin):
     """
 
     @coroutine
-    def on_validated(self, data, uid):
+    def on_update(self, data, uid):
         changes = yield self.db_update(self.TABLE, uid, data)
         return changes
 
@@ -230,7 +230,7 @@ class UpdateMixin(ValidatorMixin):
     def put(self, uid):
         self.validate()
         try:
-            changes = yield self.on_validated(self.validator.document, uid)
+            changes = yield self.on_update(self.validator.document, uid)
         except self.DbError as e:
             self.set_status(500)
             self.write_json({'reason': str(e)})

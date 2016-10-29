@@ -88,7 +88,7 @@ class VersatileEncoder(JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, UUID):
-            return shortuuid.encode(obj)
+            return str(obj)
         elif isinstance(obj, datetime):
             return str(obj)
         else:

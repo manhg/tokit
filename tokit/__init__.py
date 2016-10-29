@@ -89,6 +89,8 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
                 pass # Add logic here
     """
 
+    TEMPLATE_NS = None
+
     def set_default_headers(self):
         self.set_header('Server', 'Python3')
 
@@ -99,6 +101,8 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
         namespace = super(Request, self).get_template_namespace()
         namespace['json'] = to_json
         namespace['url'] = self.abs_url
+        if self.TEMPLATE_NS:
+            namespace.update(self.TEMPLATE_NS)
         return namespace
 
     def js(self):
@@ -171,7 +175,8 @@ class Assets(tornado.web.StaticFileHandler):
     ALLOW_TYPES = (
         'tag', 'js', 'css',
         'png', 'jpg', 'ico', 'svg', 'gif',
-        'zip', 'tar', 'tgz', 'txt'
+        'zip', 'tar', 'tgz', 'txt',
+        '.js.map', 'sass', 'coffee',
     )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
@@ -236,7 +241,7 @@ class Config:
 
         os.environ['TZ'] = self.timezone
         time.tzset()
-        
+
         locale_name = self.env['app'].get('locale', 'en')
         tornado.locale.set_default_locale(locale_name)
 
@@ -306,14 +311,14 @@ def start(host, port, config):
     ioloop = IOLoop.instance()
     http_server.listen(port, host)
     logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))
-    
+
     def _reload():
         """ reload Python code should also clear cache """
         Assets.reset()
         with Request._template_loader_lock:
             for loader in Request._template_loaders.values():
                 loader.reset()
-    
+
     add_reload_hook(_reload)
 
     if config.graceful:

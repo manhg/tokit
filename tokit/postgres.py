@@ -31,8 +31,9 @@ def pg_init(app):
         dsn=dbname=[APP_NAME]
         size=2
     """
-    logging.getLogger('momoko').setLevel(logger.getEffectiveLevel())
     env = app.config.env['postgres']
+    if env.getboolean('log_momoko'):
+        logging.getLogger('momoko').setLevel(logger.getEffectiveLevel())
     momoko_opts = dict(
         dsn=env['dsn'],
         size=int(env['size']),
