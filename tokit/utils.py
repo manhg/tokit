@@ -119,6 +119,11 @@ def make_hash(secret, as_binary=False, **kwargs):
     else:
         return binascii.hexlify(dk).decode()
 
+def md5(text):
+    m = hashlib.md5()
+    m.update(str.encode(text))
+    return binascii.hexlify(m.digest()).decode()
+
 try:
     import markdown
 
