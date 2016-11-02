@@ -76,8 +76,15 @@ class HTMLErrorMixin:
 
         # ref https://github.com/python/cpython/blob/3.6/Lib/cgitb.py#L101
         self.set_header('Content-Type', 'text/html')
-        self.write(cgitb.html(kwargs["exc_info"]))
-        self.write('<style>* { font-family: monospace; }</style>');
+        self.write('<html><head><style>* { font-family: monospace; }  strong::before { content: " "; display: block; }</style></head>');
+        trace = cgitb.html(kwargs["exc_info"]) \
+            .replace('#6622aa', '#5f99cf') \
+            .replace('#d8bbff', '#cee3f8') \
+            .replace('#f0f0f8', '#fff') \
+            .replace('#ffccee', '#e7e7e7') \
+            .replace('#909090', '#000')
+        self.write(trace)
+
         self.finish()
 
 class Request(HTMLErrorMixin, tornado.web.RequestHandler, metaclass=Registry):
