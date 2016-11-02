@@ -71,8 +71,8 @@ class Registry(type):
 class HTMLErrorMixin:
 
     def write_error(self, status_code, **kwargs):
-        if not self.env['app'].get('full_trace', None):
-            super().write_error(status_code, **kwargs)
+        if not self.env['app'].getboolean('full_trace'):
+            return super().write_error(status_code, **kwargs)
 
         # ref https://github.com/python/cpython/blob/3.6/Lib/cgitb.py#L101
         self.set_header('Content-Type', 'text/html')
@@ -191,7 +191,7 @@ class ValidPathMixin:
         'map', 'sass', 'coffee',
     )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
-    
+
     def validate_absolute_path(self, root, absolute_path):
         if not os.path.exists(absolute_path):
             raise HTTPError(404)
@@ -209,7 +209,7 @@ class ValidPathMixin:
 
 
 class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
-    
+
     @classmethod
     def get_content_version(cls, abspath):
         return super().get_content_version(abspath)[:6]
@@ -257,8 +257,6 @@ class Config:
         self.settings['static_hash_cache'] = boolenv('static_hash_cache', self.settings['debug'])
         self.settings['compress_response'] = boolenv('compress_response', True)
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret', make_rand())
-
-        full_trace = self.env['app'].get('full_trace')
 
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
