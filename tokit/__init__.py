@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os, sys, re, collections, logging
-import traceback, cgitb
 import time, signal, importlib, inspect, configparser
 from contextlib import contextmanager
 
@@ -14,6 +13,7 @@ from tornado import testing
 from tornado.httpserver import HTTPServer
 from tornado.web import HTTPError
 from tokit.utils import Event, on, to_json, make_rand
+from tokit.traceback import trace_html
 
 logger = logging.getLogger('tokit')
 
@@ -76,13 +76,7 @@ class HTMLErrorMixin:
 
         # ref https://github.com/python/cpython/blob/3.6/Lib/cgitb.py#L101
         self.set_header('Content-Type', 'text/html')
-        self.write('<html><head><style>* { font-family: monospace; }  strong::before { content: " "; display: block; }</style></head>');
-        trace = cgitb.html(kwargs["exc_info"]) \
-            .replace('#6622aa', '#5f99cf') \
-            .replace('#d8bbff', '#cee3f8') \
-            .replace('#f0f0f8', '#fff') \
-            .replace('#ffccee', '#e7e7e7') \
-            .replace('#909090', '#000')
+        trace = trace_html(kwargs["exc_info"])
         self.write(trace)
 
         self.finish()
