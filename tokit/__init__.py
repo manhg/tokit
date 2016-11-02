@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os, sys, re, collections, logging
-import cgitb, traceback
+import traceback, cgitb
 import time, signal, importlib, inspect, configparser
 from contextlib import contextmanager
 
@@ -68,8 +68,19 @@ class Registry(type):
         """
         return Registry._repo[parent_name]
 
+class HTMLErrorMixin:
 
-class Request(tornado.web.RequestHandler, metaclass=Registry):
+    def write_error(self, status_code, **kwargs):
+        if not self.env['app'].get('full_trace', None):
+            super().write_error(status_code, **kwargs)
+
+        # ref https://github.com/python/cpython/blob/3.6/Lib/cgitb.py#L101
+        self.set_header('Content-Type', 'text/html')
+        self.write(cgitb.html(kwargs["exc_info"]))
+        self.write('<style>* { font-family: monospace; }</style>');
+        self.finish()
+
+class Request(HTMLErrorMixin, tornado.web.RequestHandler, metaclass=Registry):
     """
     Base class for handling request
     Class hierarchy is defined right to left, methods are resolved is from left to right
@@ -146,15 +157,6 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
                 pattern, name = route
                 routes.append(tornado.web.URLSpec(pattern, handler, name=name))
         return routes
-
-    def write_error(self, status_code, **kwargs):
-        if self.env['app'].get('full_trace', None):
-            self.set_header('Content-Type', 'text/html')
-            self.write(cgitb.html(kwargs["exc_info"]))
-            self.finish()
-        else:
-            super().write_error(status_code, **kwargs)
-
 
 class Websocket(tornado.websocket.WebSocketHandler, metaclass=Registry):
     def reply(self, _payload=None, **kwargs):
@@ -256,8 +258,6 @@ class Config:
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret', make_rand())
 
         full_trace = self.env['app'].get('full_trace')
-        if full_trace:
-            cgitb.enable(context=7, display=0)
 
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
