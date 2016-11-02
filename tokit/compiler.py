@@ -12,6 +12,7 @@ from tornado.iostream import IOStream
 from tornado.gen import coroutine
 from tornado.web import HTTPError
 from tokit.tasks import ThreadPoolMixin, run_on_executor
+from tokit import ValidPathMixin
 
 COMPILER_URLS = []
 
@@ -20,7 +21,7 @@ def read_file(filename):
         return fp.read()
 
 
-class CompilerHandler(ThreadPoolMixin, tornado.web.RequestHandler):
+class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
         self.set_header('Server', 'Python3')
@@ -28,12 +29,10 @@ class CompilerHandler(ThreadPoolMixin, tornado.web.RequestHandler):
     @coroutine
     def get(self, requested_file):
         try:
-            requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '/')
-            full_path = self.application.root_path + requested_path
-            if not os.path.exists(full_path):
-                raise HTTPError(404)
-            # TODO check harmful path
-            yield self.compile(full_path)
+            requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '')
+            abs_path = os.path.abspath(os.path.join(self.application.root_path, requested_path))
+            self.validate_absolute_path(self.application.root_path, abs_path)
+            yield self.compile(abs_path)
         except Exception as e:
             self.set_status(400)
             self.write('/*')

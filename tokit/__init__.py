@@ -11,6 +11,7 @@ import tornado.netutil
 from tornado.ioloop import IOLoop
 from tornado.autoreload import add_reload_hook
 from tornado import testing
+from tornado.web import HTTPError
 
 from tokit.utils import Event, on, to_json, make_rand
 
@@ -171,21 +172,33 @@ class Module(tornado.web.UIModule, metaclass=Registry):
         return {c.__name__: c for c in Registry.known(cls.__name__)}
 
 
-class Assets(tornado.web.StaticFileHandler):
+class ValidPathMixin:
     ALLOW_TYPES = (
         'tag', 'js', 'css',
         'png', 'jpg', 'ico', 'svg', 'gif',
         'zip', 'tar', 'tgz', 'txt',
-        '.js.map', 'sass', 'coffee',
+        'map', 'sass', 'coffee',
     )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
-
+    
     def validate_absolute_path(self, root, absolute_path):
-        """ Add file types checking """
+        if not os.path.exists(absolute_path):
+            raise HTTPError(404)
+
+        if not absolute_path.startswith(root):
+            raise HTTPError(403, 'Invalid path ' + root)
+
         if not self.VALID_PATH.match(absolute_path):
-            raise tornado.web.HTTPError(403, 'Unallowed file type')
+            raise HTTPError(403, 'Unallowed file type')
+
+        if not os.path.basename(absolute_path)[0].isalpha():
+            raise HTTPError(403, 'Non-allowed file name. Must starts with a character')
+
         return absolute_path
 
+
+class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
+    
     @classmethod
     def get_content_version(cls, abspath):
         return super().get_content_version(abspath)[:6]
@@ -212,7 +225,9 @@ class Config:
     def __init__(self, base_file):
         self.root_path = os.path.abspath(os.path.dirname(base_file))
         os.chdir(self.root_path)
-        self.settings['static_path'] = os.path.join(self.root_path, self.settings['static_path'])
+        self.settings['static_path'] = os.path.abspath(
+            os.path.join(self.root_path, self.settings['static_path'])
+        )
 
     def read_ini(self, cfg_files=None):
         """ Load extra env config
