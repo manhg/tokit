@@ -63,8 +63,6 @@ class ErrorMixin:
                 response['reason'] = exception.reason
             if hasattr(exception, 'detail'):
                 response['detail'] = exception.detail
-            if self.application.config.env.getboolean('app', 'full_trace'):
-                print(cgitb.text(kwargs["exc_info"]))
         self.set_status(status_code)
         if isinstance(self, WebSocketHandler):
             self.write_message(response)

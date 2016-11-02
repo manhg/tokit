@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 import os, sys, re, collections, logging
+import cgitb, traceback
 import time, signal, importlib, inspect, configparser
 from contextlib import contextmanager
 
 import tornado.locale
-from tornado.httpserver import HTTPServer
 import tornado.web
 import tornado.websocket
 import tornado.netutil
 from tornado.ioloop import IOLoop
 from tornado.autoreload import add_reload_hook
 from tornado import testing
+from tornado.httpserver import HTTPServer
 from tornado.web import HTTPError
-
 from tokit.utils import Event, on, to_json, make_rand
 
 logger = logging.getLogger('tokit')
@@ -147,6 +147,14 @@ class Request(tornado.web.RequestHandler, metaclass=Registry):
                 routes.append(tornado.web.URLSpec(pattern, handler, name=name))
         return routes
 
+    def write_error(self, status_code, **kwargs):
+        if self.env['app'].get('full_trace', None):
+            self.set_header('Content-Type', 'text/html')
+            self.write(cgitb.html(kwargs["exc_info"]))
+            self.finish()
+        else:
+            super().write_error(status_code, **kwargs)
+
 
 class Websocket(tornado.websocket.WebSocketHandler, metaclass=Registry):
     def reply(self, _payload=None, **kwargs):
@@ -246,6 +254,10 @@ class Config:
         self.settings['static_hash_cache'] = boolenv('static_hash_cache', self.settings['debug'])
         self.settings['compress_response'] = boolenv('compress_response', True)
         self.settings['cookie_secret'] = self.env['secret'].get('cookie_secret', make_rand())
+
+        full_trace = self.env['app'].get('full_trace')
+        if full_trace:
+            cgitb.enable(context=7, display=0)
 
         log_level = getattr(logging, self.env['app'].get('log_level'))
         logging.basicConfig(level=log_level)
