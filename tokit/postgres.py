@@ -102,9 +102,13 @@ class PgMixin:
 
     @coroutine
     def pg_select(self, query, *params):
-        """ Query and convert result """
+        """
+        Query and convert each returned row
+
+        :return generator
+        """
         result = yield self.pg_query(query, *params)
-        return [self.pg_serialize(row) for row in result.fetchall()]
+        return (self.pg_serialize(row) for row in result.fetchall())
 
     @coroutine
     def pg_one(self, query, *params):

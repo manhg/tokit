@@ -87,6 +87,9 @@ class CassandraMixin:
         return session
 
     def cs_query(self, cql, params=None):
+        """
+        :params can be list or dict
+        """
         future = Future()
         cs_future = self.cs_pool.execute_async(cql, params)
 
@@ -100,6 +103,14 @@ class CassandraMixin:
         return future
 
     async def cs_one(self, table, row_id):
+        result = await self.cs_query(
+            "SELECT * FROM " + table + " WHERE id = %s ",
+            [row_id]
+        )
+        if result:
+            return (serialize(row) for row in result)
+            
+    async def cs_select(self, cql, params=None):
         result = await self.cs_query(
             "SELECT * FROM " + table + " WHERE id = %s ",
             [row_id]
