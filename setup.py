@@ -1,7 +1,7 @@
 from setuptools import setup
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.6.10'
+tokit_version = '0.6.11'
 
 setup(
     name='tokit',
@@ -14,8 +14,9 @@ setup(
     download_url='https://github.com/manhg/tokit/tarball/' + tokit_version,
     keywords=['tornado', 'web', 'tokit'],
     install_requires = [
-        "tornado>=4.3",
-        "shortuuid"
+        "tornado==4.4",
+        "shortuuid==0.4.3",
+        "cerberus==1.0.1"
     ],
     package_data={'tokit': [
         'js/*.js', 'skeleton/*',
