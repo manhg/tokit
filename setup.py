@@ -1,11 +1,19 @@
+import os
 from setuptools import setup
+from itertools import chain
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.6.11'
+tokit_version = '0.6.13'
+
+def pack_files(directory):
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            yield os.path.join(path, filename)
+
+extra_files = list(chain(pack_files('tokit/js'), pack_files('tokit/skeleton')))
 
 setup(
     name='tokit',
-    packages=['tokit'],
     version=tokit_version,
     description='A kit for development with Tornado web framework',
     author='Giang Manh',
@@ -18,10 +26,10 @@ setup(
         "shortuuid==0.4.3",
         "cerberus==1.0.1"
     ],
-    package_data={'tokit': [
-        'js/*.js', 'skeleton/*',
-        'skeleton/config/*', 'skeleton/src/*', 'skeleton/src/home/*'
-    ]},
+    packages=['tokit'],
+    package_data={
+        '': extra_files
+    },
     classifiers=[
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',

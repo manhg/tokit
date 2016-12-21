@@ -147,8 +147,6 @@ class Request(HTMLErrorMixin, tornado.web.RequestHandler, metaclass=Registry):
         for handler in Registry.known(cls.__name__):
             route = getattr(handler, 'URL', None)
             if not route:
-                logger.debug("Missing route for handler %s.%s",
-                             handler.__module__, handler.__name__)
                 continue
             if isinstance(route, str):
                 routes.append(tornado.web.URLSpec(route, handler))
