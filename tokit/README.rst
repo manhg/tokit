@@ -27,9 +27,9 @@ If a module interact with other modules, use tokit.Event for hooking.
 
 Changelog
 ---------
-* 0.7   Support Jade template
+* 0.7   Support Jade template, Stylus CSS (use PyExecJS)
 * 0.6   Add email, generic tasks runner
-* 0.4.2 Support Coffeescript / SASS
+* 0.4.2 Support Coffeescript / SASS (required PyExecJS / sass library)
 * 0.4.1 REST interface
 * 0.4.1 Cassandra support
 * 0.3   Skeleton tool

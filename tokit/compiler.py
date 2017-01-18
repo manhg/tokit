@@ -61,13 +61,17 @@ except ImportError:
 
 try:
     import execjs
+    lib_path = os.path.dirname(__file__) + '/js/'
     js_context = execjs.get().compile(
-        read_file(os.path.dirname(__file__) + '/js/coffee-script.js')
+        read_file(lib_path + 'coffee-script.js')
+    )
+    stylus_context = execjs.get().compile(
+        read_file(lib_path + 'stylus.js')
     )
     riot_context = execjs.get().compile(
-        read_file(os.path.dirname(__file__) + '/js/coffee-script.js') +
+        read_file(lib_path + 'coffee-script.js') +
         ";\n\n var exports = {}; module.exports = {};" +  # fake CommonJS environment
-        read_file(os.path.dirname(__file__) + '/js/riotc.js') + "; var riot = module.exports;"
+        read_file(lib_path + 'riot-compiler.js') + "; var riot = module.exports;"
     )
 
     class CoffeeHandler(CompilerHandler):
@@ -84,6 +88,16 @@ try:
             )
             self.write(result)
 
+    class StylusHandler(CoffeeHandler):
+
+        def prepare(self):
+            self.set_header('Content-Type', 'text/css')
+
+        @run_on_executor
+        def compile(self, full_path):
+            result = stylus_context.call('stylus.render', read_file(full_path))
+            self.write(result)
+
     class RiotHandler(CoffeeHandler):
 
         @run_on_executor
@@ -96,10 +110,12 @@ try:
             self.write(result)
 
 
+    COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
     COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
     COMPILER_URLS.append((r'^(/.+\.tag)$', RiotHandler))
 except ImportError:
     pass
+    
 
 def init_complier(app):
     from tokit import logger

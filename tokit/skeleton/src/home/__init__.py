@@ -32,3 +32,4 @@ class About(TranslationMixin, Request):
         
     def css(self):
         yield 'base.css'
+        yield 'demo.styl'

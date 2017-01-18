@@ -186,7 +186,7 @@ class ValidPathMixin:
         'tag', 'js', 'css',
         'png', 'jpg', 'ico', 'svg', 'gif',
         'zip', 'tar', 'tgz', 'txt',
-        'map', 'sass', 'coffee',
+        'map', 'sass', 'coffee', 'styl',
     )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
