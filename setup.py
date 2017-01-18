@@ -3,7 +3,7 @@ from setuptools import setup
 from itertools import chain
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.6.13'
+tokit_version = '0.7'
 
 def pack_files(directory):
     for (path, directories, filenames) in os.walk(directory):

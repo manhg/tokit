@@ -46,3 +46,7 @@ main {
 button {
   min-width: 5rem;
 }
+
+body {
+  border-top: solid 4px #004080;
+}

@@ -9,3 +9,4 @@ cerberus
 # momoko
 # cassandra-driver
 # sphinx
+# pyjade

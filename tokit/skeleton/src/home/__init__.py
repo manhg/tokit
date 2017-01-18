@@ -16,7 +16,19 @@ class Home(TranslationMixin, Request):
         self.render('home.html')
 
     def css(self):
-        return ['base.css', 'home/home.sass']
+        yield 'base.css'
+        yield 'home/home.sass'
 
     def js(self):
-        return ['riot.js', 'home/home.coffee', 'home/home.tag']
+        yield from ['riot.js', 'home/home.coffee', 'home/home.tag']
+
+
+class About(TranslationMixin, Request):
+
+    URL = '/about', 'about'
+
+    def get(self):
+        self.render('about.jade')
+        
+    def css(self):
+        yield 'base.css'

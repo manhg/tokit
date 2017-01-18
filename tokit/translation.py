@@ -2,9 +2,19 @@ import re
 import os
 from collections import ChainMap, defaultdict
 
-from tornado.template import Loader, Template, ParseError
+from tornado.template import (
+    Loader, ParseError,
+    Template as TornadoTemplate
+)
+try:
+    from pyjade.ext.tornado import Template as JadeTemplate
+except:
+    pass
+
 from tornado import locale
 from tokit.utils import on
+
+
 
 SHORTCUT_RE = [
     (re.compile(rb'{\*\s*([\w\_]+)\s+(.*?)\*}', re.DOTALL), rb'{{ _("\1").format(\2) }}'),
@@ -51,14 +61,22 @@ class CustomLoader(Loader):
         path = os.path.join(self.root, name)
         with open(path, "rb") as f:
             try:
-                template = Template(
+                EngineClass = self._get_template_engine(name)
+                template = EngineClass(
                     self._custom_prepocessor(f.read()),
                     name=name, loader=self,
-                    compress_whitespace=False)
+                    compress_whitespace=False
+                )
                 return template
             except ParseError as exception:
                 exception.args = exception.args + (path, )
                 raise
+                
+    def _get_template_engine(self, name):
+        if name.endswith('.jade'):
+            return JadeTemplate
+
+        return TornadoTemplate
 
 
 class TranslationMixin:
