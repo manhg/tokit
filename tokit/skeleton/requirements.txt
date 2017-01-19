@@ -3,10 +3,3 @@ fabric3
 pytest
 shortuuid
 cerberus
-
-# PyExecJS
-# libsass
-# momoko
-# cassandra-driver
-# sphinx
-# pyjade

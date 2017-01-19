@@ -1,10 +1,6 @@
 [Service]
 WorkingDirectory=/home/APP/src/
-
-# To customize, create a folder APP@.service.d and and secret.conf file there
-# -u unbuffered
-# -OO optimized by remove docstring, assert
-ExecStart=/home/APP/bin/python3 -u -OO /home/APP/src/app.py --port=%I
+ExecStart=/home/APP/bin/python3 -u /home/APP/src/app.py --port=%I
 Restart=always
 User=APP
 SyslogIdentifier=APP
