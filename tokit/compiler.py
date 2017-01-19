@@ -2,7 +2,12 @@
 Transform to browsers' languages
 Can serve files directly using shortcut: `python3 -m tokit.compiler`
 
-Require system's libsass and pyv8
+For Sass, it requires system's `libsass` installed.
+
+For Coffeescript it need a Javascript runtime, either by
+having Python's `pyv8` (with `libv8` installed or system's `node`
+
+For Stylus, it has same requirements as Coffeescript
 """
 import os
 import io
@@ -13,8 +18,10 @@ from tornado.gen import coroutine
 from tornado.web import HTTPError
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 from tokit import ValidPathMixin
+import logging
 
 COMPILER_URLS = []
+logger = logging.getLogger('tokit')
 
 def read_file(filename):
     with io.open(filename, encoding='utf8') as fp:
@@ -28,16 +35,22 @@ class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandle
 
     @coroutine
     def get(self, requested_file):
+        requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '')
+        abs_path = os.path.abspath(os.path.join(self.application.root_path, requested_path))
+        self.validate_absolute_path(self.application.root_path, abs_path)
         try:
-            requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '')
-            abs_path = os.path.abspath(os.path.join(self.application.root_path, requested_path))
-            self.validate_absolute_path(self.application.root_path, abs_path)
             yield self.compile(abs_path)
         except Exception as e:
             self.set_status(400)
-            self.write('/*')
-            self.write(str(e))
-            self.write('*/')
+            logger.exception(e)
+
+            if (self.settings['debug']):
+                # /* */ are comment style supported by both Javascript and CSS
+                self.write("/*\n")
+                self.write(f"Handler: {self.__class__.__name__}\n")
+                self.write(f"Exception while compiling {requested_file}\n\n")
+                self.write(str(e))
+                self.write('*/')
 
 try:
     import sass
@@ -126,8 +139,14 @@ def init_complier(app):
         logger.warn('Found no compilers handlers')
 
 if __name__ == "__main__":
+    from tornado import options as opts
+
+    opts.define('host', default='::1')
+    opts.define('port', default='80')
+    opts.parse_command_line()
+
     app = tornado.web.Application(urlspecs())
     app.root_path = os.path.realpath(os.path.curdir)
     print("Serving via compiler in:", app.root_path)
-    app.listen(7998)
+    app.listen(opts.options.port, opts.options.host)
     tornado.ioloop.IOLoop.current().start()
