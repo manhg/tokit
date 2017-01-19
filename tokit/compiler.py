@@ -74,23 +74,29 @@ except ImportError:
 
 try:
     import execjs
+
     lib_path = os.path.dirname(__file__) + '/js/'
-    js_context = execjs.get().compile(
-        read_file(lib_path + 'coffee-script.js')
-    )
-    stylus_context = execjs.get().compile(
-        read_file(lib_path + 'stylus.js')
-    )
+
+    js_context = execjs.get().compile(read_file(lib_path + 'coffee-script.js'))
+    babel_context = execjs.get().compile(read_file(lib_path + 'browser.min.js'))
+
+    # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
+    stylus_context = execjs.get().compile(read_file(lib_path + 'stylus.js'))
+
     riot_context = execjs.get().compile(
         read_file(lib_path + 'coffee-script.js') +
-        ";\n\n var exports = {}; module.exports = {};" +  # fake CommonJS environment
+        # HACK fake CommonJS environment to load the compiler
+        # the library originally target NodeJS
+        ";\n\n var exports = {}; module.exports = {};" +
         read_file(lib_path + 'riot-compiler.js') + "; var riot = module.exports;"
     )
 
-    class CoffeeHandler(CompilerHandler):
+    class JavascriptHandler(CompilerHandler):
 
         def prepare(self):
             self.set_header('Content-Type', 'application/javascript')
+
+    class CoffeeHandler(JavascriptHandler):
 
         @run_on_executor
         def compile(self, full_path):
@@ -101,7 +107,7 @@ try:
             )
             self.write(result)
 
-    class StylusHandler(CoffeeHandler):
+    class StylusHandler(JavascriptHandler):
 
         def prepare(self):
             self.set_header('Content-Type', 'text/css')
@@ -111,7 +117,7 @@ try:
             result = stylus_context.call('stylus.render', read_file(full_path))
             self.write(result)
 
-    class RiotHandler(CoffeeHandler):
+    class RiotHandler(JavascriptHandler):
 
         @run_on_executor
         def compile(self, full_path):
@@ -122,10 +128,19 @@ try:
             )
             self.write(result)
 
+    class JsxHandler(JavascriptHandler):
+    
+        @run_on_executor
+        def compile(self, full_path):
+            result = babel_context.call('(global.Babel || module.exports).transform', read_file(full_path), {
+                "plugins": ["transform-react-jsx"]
+            })
+            self.write(result)
 
     COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
     COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
     COMPILER_URLS.append((r'^(/.+\.tag)$', RiotHandler))
+    COMPILER_URLS.append((r'^(/.+\.jsx)$', JsxHandler))
 except ImportError:
     pass
     
@@ -138,7 +153,7 @@ def init_complier(app):
     else:
         logger.warn('Found no compilers handlers')
 
-if __name__ == "__main__":
+def main():
     from tornado import options as opts
 
     opts.define('host', default='::1')
@@ -150,3 +165,6 @@ if __name__ == "__main__":
     print("Serving via compiler in:", app.root_path)
     app.listen(opts.options.port, opts.options.host)
     tornado.ioloop.IOLoop.current().start()
+
+if __name__ == "__main__":
+    main()

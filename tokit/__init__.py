@@ -183,10 +183,10 @@ class Module(tornado.web.UIModule, metaclass=Registry):
 
 class ValidPathMixin:
     ALLOW_TYPES = (
-        'tag', 'js', 'css',
+        'js', 'css',
         'png', 'jpg', 'ico', 'svg', 'gif',
         'zip', 'tar', 'tgz', 'txt',
-        'map', 'sass', 'coffee', 'styl',
+        'map', 'tag', 'coffee', 'sass', 'styl', 'jsx', 'js6'
     )
     VALID_PATH = re.compile(r'.*\.({types})$'.format(types='|'.join(ALLOW_TYPES)))
 
