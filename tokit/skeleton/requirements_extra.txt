@@ -1,6 +1,11 @@
+# comment out what you don't need
+
 PyExecJS
 libsass
+pyjade
+
 momoko
 cassandra-driver
+
 sphinx
-pyjade
+sphinx-better-theme

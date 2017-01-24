@@ -100,7 +100,7 @@ class EmailMixin:
 
 
 class ThreadPoolMixin:
-    """ Mix this and wrap blocking function with `run_on_executor` """
+    """ Mix this and wrap blocking function with ``run_on_executor`` """
 
     _executor = None
 

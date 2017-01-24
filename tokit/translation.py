@@ -23,7 +23,7 @@ SHORTCUT_RE = [
 
 def init_locale(config):
     """
-    Load per-module `lang` folder CSV translations
+    Load per-module ``lang`` folder CSV translations
     """
     chain = defaultdict(lambda: defaultdict(ChainMap))
 

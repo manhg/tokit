@@ -1,11 +1,11 @@
 """
 Transform to browsers' languages
-Can serve files directly using shortcut: `python3 -m tokit.compiler`
+Can serve files directly using shortcut: ``python3 -m tokit.compiler``
 
-For Sass, it requires system's `libsass` installed.
+For Sass, it requires system's ``libsass`` installed.
 
 For Coffeescript it need a Javascript runtime, either by
-having Python's `pyv8` (with `libv8` installed or system's `node`
+having Python's ``pyv8`` (with ``libv8`` installed or system's ``node``
 
 For Stylus, it has same requirements as Coffeescript
 """
@@ -78,7 +78,7 @@ try:
     lib_path = os.path.dirname(__file__) + '/js/'
 
     js_context = execjs.get().compile(read_file(lib_path + 'coffee-script.js'))
-    babel_context = execjs.get().compile(read_file(lib_path + 'browser.min.js'))
+    babel_context = execjs.get().compile(read_file(lib_path + 'babel.js'))
 
     # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
     stylus_context = execjs.get().compile(read_file(lib_path + 'stylus.js'))

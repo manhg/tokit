@@ -1,14 +1,16 @@
-config/development.ini
-config/production.ini
-doc/_build
-src/.idea
-.idea
+__pycache__
+
+/config/development.ini
+/config/production.ini
+/doc/_build
+
 *.zip
 *.tar
 *.tgz
 
-# Pyvenv
-bin
-include
-lib
-lib64
+.env
+
+/bin
+/include
+/lib
+/lib64

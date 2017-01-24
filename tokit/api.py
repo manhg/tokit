@@ -73,11 +73,14 @@ class ErrorMixin:
 
 class Resource(ErrorMixin, JsonMixin, Request):
     """
-    This must be subclass and mix with a DB Mixin which supports
-    `db_query, db_insert` methods
+    This provides quickway to build an API around a database object,
+    supply ``list`` and ``create`` actions.
 
-    To add checking, permission by roles
-    Overide `def prepare(self)
+    This must be subclass and mixin with a database mixin
+    which supports database operation such as:
+    ``db_query, db_insert`, `db_serialize``, and ``db_select``
+
+    To check permissions, overide ``prepare`` method.
     """
 
     REPO = 'Resource'
@@ -100,8 +103,8 @@ class Resource(ErrorMixin, JsonMixin, Request):
 
 class Item(ErrorMixin, JsonMixin, Request):
     """
-    This must be subclass and mix with a DB Mixin which supports
-    `db_query, db_update` methods
+    This similar to `Resource` class, supply get an item out of list and
+    PATCH/DELETE actions.
     """
     REPO = 'Item'
     URL_PREFIX = '/api'
@@ -131,8 +134,7 @@ class Item(ErrorMixin, JsonMixin, Request):
 @on('init')
 def register_resources_items(self):
     """
-    If accept-content is json, run the endpoint
-    If accept HTML then return reference documentation
+    Quicky register all possible routes to a `Resource` and/or an `Item`
     """
     request_repo = Registry._repo['Request']
     resources = Registry.known('Resource')
@@ -186,10 +188,6 @@ class ValidatorMixin:
 
 
 class CreateMixin(ValidatorMixin):
-    """
-    Validate and create record
-    from untrusted sources
-    """
 
     @coroutine
     def on_create(self, data):
@@ -214,10 +212,6 @@ class CreateMixin(ValidatorMixin):
             })
 
 class UpdateMixin(ValidatorMixin):
-    """
-    Validate and update record
-    from untrusted sources
-    """
 
     @coroutine
     def on_update(self, data, uid):

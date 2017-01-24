@@ -1,17 +1,10 @@
-.. title:: Pokersu
+.. title:: Tokit
 
-Introduction
-------------
-
-Syntax reference:
-
-http://sphinx-doc.org/latest/domains.html#the-python-domain
-
-Common
-------
+Tokit library
+-------------
 
 
 .. toctree::
-   :titlesonly:
+    :maxdepth: 2
 
-   common
+    tokit

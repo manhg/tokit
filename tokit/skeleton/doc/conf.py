@@ -1,21 +1,24 @@
 import os
 import sys
 
+try:
+    from better import better_theme_path
+
+    html_theme_path = [better_theme_path]
+    html_theme = 'better'
+except ImportError:
+    html_theme = 'bizstyle'
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 master_doc = "index"
-project = "pokersu"
-
+project = "tokit"
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.coverage",
-    "sphinx.ext.extlinks",
-    "sphinx.ext.intersphinx",
-    ]
+    "sphinx.ext.extlinks"
+]
 
-primary_domain = 'py'
-default_role = 'py:obj'
 autodoc_member_order = "bysource"
 autodoc_default_flags = ['members', 'undoc-members', 'private-members']
 autoclass_content = "both"
@@ -26,9 +29,3 @@ autoclass_content = "both"
 autodoc_docstring_signature = False
 coverage_skip_undoc_in_source = True
 coverage_ignore_classes = []
-coverage_ignore_functions = []
-
-
-intersphinx_mapping = {'python': ('http://docs.python.org/', None)}
-
-html_theme = "sphinx_rtd_theme"
