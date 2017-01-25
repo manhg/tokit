@@ -85,10 +85,15 @@ try:
 
     riot_context = execjs.get().compile(
         read_file(lib_path + 'coffee-script.js') +
+
         # HACK fake CommonJS environment to load the compiler
         # the library originally target NodeJS
-        ";\n\n var exports = {}; module.exports = {};" +
-        read_file(lib_path + 'riot-compiler.js') + "; var riot = module.exports;"
+        "var exports = {}; module.exports = {};" +
+        read_file(lib_path + 'riot-compiler.js') + "; var riot = module.exports;" +
+
+        # Riot custom language
+        read_file(lib_path + 'stylus.js') +
+        'riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };'
     )
 
     class JavascriptHandler(CompilerHandler):
