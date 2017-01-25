@@ -1,0 +1,57 @@
+version: "2"
+services:
+    py:
+        build: .
+        working_dir: /app/src
+        command: python3 /app/src/app.py --host=0.0.0.0 --port=9000 --env=docker
+        expose:
+            - "9000"
+        links:
+            - pg
+            - cs1
+            - cs2
+            - mail
+        volumes:
+            - .:/app
+        mem_limit: 128M
+    web:
+        image: nginx:1.10-alpine
+        container_name: web
+        volumes:
+            - ./config/nginx:/etc/nginx/conf.d/tokit.conf
+            - ./config/nginx/docker.conf:/etc/nginx/nginx.conf
+            - ./src/static:/var/www/static
+        links:
+            - py
+        ports:
+            - "8000:80"
+    cs1:
+        image: cassandra:3
+        
+        # suppose default cpu period is 100ms, this set 25% CPU limit
+        cpu_quota: 25000
+        mem_limit: 256M
+        memswap_limit: 0M
+        environment:
+            - CASSANDRA_CLUSTER_NAME=app
+            - CASSANDRA_DC=dc1
+        # volumes:
+        #    - tmp/cs1:/var/lib/cassandra
+    cs2:
+        extends:
+            service: cs1
+        environment:
+            - CASSANDRA_SEEDS=cs1
+    pg:
+        image: postgres:9.5-alpine
+        # volumes:
+        #     - tmp/pg_dump:/docker-entrypoint-initdb.d
+        #     - tmp/pg_data:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=app
+            - POSTGRES_DB=app
+    mail:
+        image: debian:jessie
+        command: python -m smtpd -n -c DebuggingServer 0.0.0.0:25
+        expose:
+            - 25
