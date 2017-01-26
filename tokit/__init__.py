@@ -105,7 +105,8 @@ class Request(HTMLErrorMixin, tornado.web.RequestHandler, metaclass=Registry):
     TEMPLATE_NS = None
 
     def set_default_headers(self):
-        self.set_header('Server', 'Python3')
+        self.set_header('X-Frame-Options', 'DENY')
+        self.set_header('Cache-Control', 'no-cache')
 
     def abs_url(self, *args):
         return self.request.protocol + "://" + self.request.host + self.reverse_url(*args)
@@ -207,6 +208,9 @@ class ValidPathMixin:
 
 
 class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
+
+    def set_default_headers(self):
+        pass
 
     @classmethod
     def get_content_version(cls, abspath):

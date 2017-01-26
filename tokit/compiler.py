@@ -31,7 +31,7 @@ def read_file(filename):
 class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
-        self.set_header('Server', 'Python3')
+        self.set_header('Cache-Control', "max-age: 2592000'")
 
     @coroutine
     def get(self, requested_file):
