@@ -230,7 +230,8 @@ class Config:
     settings = dict(
         static_path='.',
         static_url_prefix='/static/',
-        static_handler_class=Assets
+        static_handler_class=Assets,
+        template_whitespace='all',
     )
     root_path = None
     graceful = True
