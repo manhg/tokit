@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os, sys, re, collections, logging
-import time, signal, importlib, inspect, configparser
+import time, signal, importlib, inspect, configparser, hashlib
 from contextlib import contextmanager
 
 import tornado.locale
@@ -210,11 +210,19 @@ class ValidPathMixin:
 class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
 
     def set_default_headers(self):
-        pass
+        self.set_header('Cache-Control', "max-age: 2592000'")
 
     @classmethod
     def get_content_version(cls, abspath):
-        return super().get_content_version(abspath)[:6]
+        # use sha-256
+        data = cls.get_content(abspath)
+        hasher = hashlib.sha256()
+        if isinstance(data, bytes):
+            hasher.update(data)
+        else:
+            for chunk in data:
+                hasher.update(chunk)
+        return hasher.hexdigest()
 
 class Config:
     """ Subclass this to customize runtime config """
