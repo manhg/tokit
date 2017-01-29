@@ -27,7 +27,6 @@ RUN set -ex \
     && make install  > /dev/null \
 
     # install packages
-    && CCFLAGS=-fPIC scons arch=x64 \
     && pip3 install --no-cache-dir -r /tmp/req.txt \
 
     # clean up
