@@ -119,6 +119,10 @@ try:
 
         @run_on_executor
         def compile(self, full_path):
+            # TODO add context to Stylus to utilize mixins and imports
+            # http://stylus-lang.com/docs/import.html#javascript-import-api
+            #   .set('filename', __dirname + '/test.styl')
+            #   .set('paths', paths)
             result = stylus_context.call('stylus.render', read_file(full_path))
             self.write(result)
 
