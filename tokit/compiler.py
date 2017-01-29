@@ -130,12 +130,42 @@ try:
 
         @run_on_executor
         def compile(self, full_path):
+            if os.path.isdir(full_path):
+                content = self.compile_folder(full_path)
+            else:
+                content = read_file(full_path)
             result = riot_context.call(
-                "riot.compile",
-                read_file(full_path),
-                True
+                "riot.compile", content, True
             )
             self.write(result)
+
+        def compile_folder(self, full_path):
+            """ support a folder composed of html, css, js and preprocessors """
+            tag_name = os.path.basename(full_path).strip('.tag')
+            with io.StringIO() as buffer:
+                buffer.write(f"<{tag_name}>\n")
+
+                for f in os.listdir(full_path):
+                    content = read_file(os.path.join(full_path, f))
+                    if f.endswith('.styl'):
+                        buffer.write('\n<style type="text/stylus">\n')
+                        buffer.write(content)
+                        buffer.write('\n</style>')
+
+                    elif f.endswith('.html'):
+                        buffer.write(content)
+
+                    elif f.endswith('.coffee'):
+                        buffer.write('\n<script type="coffee">\n')
+                        buffer.write(content)
+                        buffer.write('\n</script>')
+                    else:
+                        logger.warn(f"Unknown how to compile: {f}")
+
+                buffer.write(f"\n</{tag_name}>")
+                return buffer.getvalue()
+
+
 
     class JsxHandler(JavascriptHandler):
     
