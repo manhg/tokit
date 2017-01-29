@@ -146,18 +146,18 @@ try:
                 buffer.write(f"<{tag_name}>\n")
 
                 for f in os.listdir(full_path):
-                    content = read_file(os.path.join(full_path, f))
+                    content = lambda: read_file(os.path.join(full_path, f))
                     if f.endswith('.styl'):
                         buffer.write('\n<style type="text/stylus">\n')
-                        buffer.write(content)
+                        buffer.write(content())
                         buffer.write('\n</style>')
 
                     elif f.endswith('.html'):
-                        buffer.write(content)
+                        buffer.write(content())
 
                     elif f.endswith('.coffee'):
                         buffer.write('\n<script type="coffee">\n')
-                        buffer.write(content)
+                        buffer.write(content())
                         buffer.write('\n</script>')
                     else:
                         logger.warn(f"Unknown how to compile: {f}")

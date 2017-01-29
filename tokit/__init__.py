@@ -213,16 +213,26 @@ class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
         self.set_header('Cache-Control', "max-age: 2592000'")
 
     @classmethod
-    def get_content_version(cls, abspath):
+    def get_version(cls, settings, path):
+        abs_path = cls.get_absolute_path(settings['static_path'], path)
+        if os.path.isdir(abs_path):
+            mtimes = (os.path.getmtime(root) for root, _, _ in os.walk(abs_path))
+            return max(mtimes)
+        else:
+            return cls._get_cached_version(abs_path)
+
+    @classmethod
+    def get_content_version(cls, abs_path):
+        data = cls.get_content(abs_path)
+
         # use sha-256
-        data = cls.get_content(abspath)
         hasher = hashlib.sha256()
         if isinstance(data, bytes):
             hasher.update(data)
         else:
             for chunk in data:
                 hasher.update(chunk)
-        return hasher.hexdigest()
+        return hasher.hexdigest()[0:6]
 
 class Config:
     """ Subclass this to customize runtime config """
