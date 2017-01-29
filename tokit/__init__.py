@@ -216,8 +216,10 @@ class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
     def get_version(cls, settings, path):
         abs_path = cls.get_absolute_path(settings['static_path'], path)
         if os.path.isdir(abs_path):
-            mtimes = (os.path.getmtime(root) for root, _, _ in os.walk(abs_path))
-            return max(mtimes)
+            hashes = []
+            for base_path, _, files in os.walk(abs_path):
+                hashes += [cls._get_cached_version(os.path.join(base_path, f)) for f in files]
+            return f"{len(hashes)}-{'-'.join(hashes)}"
         else:
             return cls._get_cached_version(abs_path)
 
