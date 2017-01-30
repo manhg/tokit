@@ -3,7 +3,6 @@ import os
 from tornado import options as opts
 import tokit
 
-
 def main():
     opts.define('host', default='::1')
     opts.define('port', default='9000')

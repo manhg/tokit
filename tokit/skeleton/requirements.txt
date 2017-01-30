@@ -3,3 +3,4 @@ fabric3
 pytest
 shortuuid
 cerberus
+https://github.com/manhgd/tokit/archive/master.tar.gz
