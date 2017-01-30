@@ -1,6 +1,13 @@
-tornado
-fabric3
-pytest
-shortuuid
-cerberus
 https://github.com/manhgd/tokit/archive/master.tar.gz
+
+PyExecJS==1.4.0
+pyjade==4.0.0
+
+sphinx
+sphinx-better-theme
+
+# libsass
+# momoko==2.2.4
+# cassandra-driver
+# pytest
+# fabric3

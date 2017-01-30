@@ -3,8 +3,7 @@ FROM debian:stretch-slim
 ENV PATH /usr/local/bin:$PATH
 ENV PYTHONUNBUFFERED 1
 ENV LANG C.UTF-8
-COPY requirements.txt /tmp/req.txt
-COPY requirements_extra.txt /tmp/req_extra.txt
+COPY requirements.txt /tmp/requirements.txt
 RUN set -ex \
 
     # declare
@@ -27,8 +26,7 @@ RUN set -ex \
     && make install  > /dev/null \
 
     # install packages
-    && pip3 install --no-cache-dir -r /tmp/req.txt \
-    && pip3 install --no-cache-dir -r /tmp/req_extra.txt \
+    && pip3 install --no-cache-dir -r /tmp/requirements.txt
 
     # clean up
     && rm -rf /tmp/Python-$VER \
