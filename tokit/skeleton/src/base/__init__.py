@@ -18,7 +18,6 @@ def js_inline(code):
             "default-src 'self';"
             f"script-src 'strict-dynamic' 'sha256-{hashed};"
     )
-
     return code
 
 class Strict(Request):
