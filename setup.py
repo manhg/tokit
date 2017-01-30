@@ -5,13 +5,6 @@ from itertools import chain
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
 tokit_version = '0.7.1'
 
-def pack_files(directory):
-    for (path, directories, filenames) in os.walk(directory):
-        for filename in filenames:
-            yield os.path.join(path, filename)
-
-extra_files = list(chain(pack_files('tokit/js'), pack_files('tokit/skeleton')))
-
 setup(
     name='tokit',
     version=tokit_version,
@@ -28,7 +21,9 @@ setup(
     ],
     packages=['tokit'],
     package_data={
-        '': extra_files
+        'tokit': [
+            'js/*.js'
+        ]
     },
     classifiers=[
         'Programming Language :: Python :: 3.5',
