@@ -6,3 +6,5 @@ document.addEventListener "DOMContentLoaded", ->
       {title: 'Coffeescript', value: 'js'},
       {title: 'RiotJS', value: 'tag'}
     ]
+
+  riot.mount 'x-sample'

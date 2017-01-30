@@ -21,6 +21,7 @@ class Home(TranslationMixin, Request):
 
     def js(self):
         yield from ['riot.js', 'home/home.coffee', 'home/home.tag']
+        yield 'home/x-sample.tag'
 
 
 class About(TranslationMixin, Request):
