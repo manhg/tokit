@@ -18,14 +18,11 @@ from tornado.gen import coroutine
 from tornado.web import HTTPError
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 from tokit import ValidPathMixin
+from tokit.utils import on
 import logging
 
 COMPILER_URLS = []
 logger = logging.getLogger('tokit')
-
-def read_file(filename):
-    with io.open(filename, encoding='utf8') as fp:
-        return fp.read()
 
 
 class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
@@ -75,44 +72,48 @@ except ImportError:
 try:
     import execjs
 
-    lib_path = os.path.dirname(__file__) + '/js/'
-
-    js_context = execjs.get().compile(read_file(lib_path + 'coffee-script.js'))
-    babel_context = execjs.get().compile(read_file(lib_path + 'babel.js'))
-
-    # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
-    stylus_context = execjs.get().compile(read_file(lib_path + 'stylus.js'))
-
-    riot_context = execjs.get().compile(
-        read_file(lib_path + 'coffee-script.js') +
-
-        # HACK fake CommonJS environment to load the compiler
-        # the library originally target NodeJS
-        "var exports = {}; module.exports = {};" +
-        read_file(lib_path + 'riot-compiler.js') + "; var riot = module.exports;" +
-
-        # Riot custom language
-        read_file(lib_path + 'stylus.js') +
-        'riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };'
-    )
-
     class JavascriptHandler(CompilerHandler):
+    
+        @property
+        def js_library_path(self):
+            try:
+                env = self.application.config.env['compiler']
+                return env['js_library_path']
+            except KeyError:
+                return os.path.dirname(__file__) + '/js/'
+            
+        def read_file(self, filename):
+            full_path = os.path.join(self.js_library_path, filename)
+            with io.open(full_path, encoding='utf8') as fp:
+                return fp.read()
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.context = execjs.get().compile(self.read_file('coffee-script.js'))
 
         def prepare(self):
             self.set_header('Content-Type', 'application/javascript')
 
     class CoffeeHandler(JavascriptHandler):
 
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.context = execjs.get().compile(self.read_file('coffee-script.js'))
+
         @run_on_executor
         def compile(self, full_path):
-            result = js_context.call(
+            result = self.context.call(
                 "CoffeeScript.compile",
-                read_file(full_path),
+                self.read_file(full_path),
                 {'bare': True}
             )
             self.write(result)
 
     class StylusHandler(JavascriptHandler):
+    
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.context = execjs.get().compile(self.read_file('stylus.js'))
 
         def prepare(self):
             self.set_header('Content-Type', 'text/css')
@@ -123,41 +124,59 @@ try:
             # http://stylus-lang.com/docs/import.html#javascript-import-api
             #   .set('filename', __dirname + '/test.styl')
             #   .set('paths', paths)
-            result = stylus_context.call('stylus.render', read_file(full_path))
+            result = self.context.call('stylus.render', self.read_file(full_path))
             self.write(result)
 
     class RiotHandler(JavascriptHandler):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
+
+            with io.StringIO() as buffer:
+                buffer.write(self.read_file('coffee-script.js'))
+                buffer.write(
+                    # HACK fake CommonJS environment to load the compiler
+                    # the library originally target NodeJS
+                    "var exports = {}; module.exports = {};"
+                )
+                buffer.write(self.read_file('riot-compiler.js'))
+                buffer.write("; var riot = module.exports;")
+
+                # Riot custom language
+                buffer.write(self.read_file('stylus.js'))
+                buffer.write('riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };')
+                self.context = execjs.get().compile(buffer.getvalue())
 
         @run_on_executor
         def compile(self, full_path):
             if os.path.isdir(full_path):
                 content = self.compile_folder(full_path)
             else:
-                content = read_file(full_path)
-            result = riot_context.call(
+                content = self.read_file(full_path)
+            result = self.context.call(
                 "riot.compile", content, True
             )
             self.write(result)
 
-        def compile_folder(self, full_path):
+        def compile_folder(self, folder):
             """ support a folder composed of html, css, js and preprocessors """
-            tag_name = os.path.basename(full_path).strip('.tag')
+            tag_name = os.path.basename(folder).strip('.tag')
             with io.StringIO() as buffer:
                 buffer.write(f"<{tag_name}>\n")
 
-                for f in os.listdir(full_path):
-                    content = lambda: read_file(os.path.join(full_path, f))
+                for f in os.listdir(folder):
                     if f.endswith('.styl'):
                         buffer.write('\n<style type="text/stylus">\n')
-                        buffer.write(content())
+                        buffer.write(self.read_file(os.path.join(folder, f)))
                         buffer.write('\n</style>')
 
                     elif f.endswith('.html'):
-                        buffer.write(content())
+                        buffer.write(self.read_file(os.path.join(folder, f)))
 
                     elif f.endswith('.coffee'):
                         buffer.write('\n<script type="coffee">\n')
-                        buffer.write(content())
+                        buffer.write(self.read_file(os.path.join(folder, f)))
                         buffer.write('\n</script>')
                     else:
                         logger.warn(f"Unknown how to compile: {f}")
@@ -169,9 +188,14 @@ try:
 
     class JsxHandler(JavascriptHandler):
     
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.context = execjs.get().compile(self.read_file('babel.js'))
+
         @run_on_executor
         def compile(self, full_path):
-            result = babel_context.call('(global.Babel || module.exports).transform', read_file(full_path), {
+            result = self.context.call('(global.Babel || module.exports).transform',
+                self.read_file(full_path), {
                 "plugins": ["transform-react-jsx"]
             })
             self.write(result)
