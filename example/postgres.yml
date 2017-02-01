@@ -1,0 +1,19 @@
+version: "2"
+services:
+    py:
+        extends:
+            file: docker-compose.yml
+            service: py
+        depends_on:
+            - pg
+        command: wait-for-it.sh pg:5432 -t 60 "python3 /app/src/app.py --host=0.0.0.0 --port=9000 --env=docker"
+    pg:
+        image: postgres:9.5-alpine
+        restart: on-failure:3
+        # volumes:
+        #     - tmp/pg_dump:/docker-entrypoint-initdb.d
+        #     - tmp/pg_data:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=app
+            - POSTGRES_DB=app
+    

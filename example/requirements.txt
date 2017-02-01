@@ -6,8 +6,8 @@ pyjade==4.0.0
 sphinx
 sphinx-better-theme
 
-# libsass
-# momoko==2.2.4
-# cassandra-driver
-# pytest
-# fabric3
+libsass
+momoko==2.2.4
+cassandra-driver
+pytest
+fabric3

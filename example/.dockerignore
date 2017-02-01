@@ -1,2 +1,4 @@
 *
 !requirements.txt
+!wait-for-it.sh
+!setup.sh
