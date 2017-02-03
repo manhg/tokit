@@ -14,11 +14,6 @@ setup(
     url='https://github.com/manhg/tokit',
     download_url='https://github.com/manhg/tokit/tarball/' + tokit_version,
     keywords=['tornado', 'web', 'tokit'],
-    install_requires = [
-        "tornado==4.4",
-        "shortuuid==0.4.3",
-        "cerberus==1.0.1"
-    ],
     packages=['tokit'],
     package_data={
         'tokit': [

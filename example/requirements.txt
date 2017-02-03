@@ -1,5 +1,6 @@
-https://github.com/manhgd/tokit/archive/master.tar.gz
-
+tornado==4.4
+shortuuid==0.4.3
+cerberus==1.0.1
 PyExecJS==1.4.0
 pyjade==4.0.0
 
