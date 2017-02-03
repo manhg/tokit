@@ -19,7 +19,7 @@ setup(
         "shortuuid==0.4.3",
         "cerberus==1.0.1"
     ],
-    packages=['tokit'],
+    packages=['tokit', 'tokit.js'],
     package_data={
         'tokit': [
             'js/*.js'
