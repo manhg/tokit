@@ -3,7 +3,7 @@ from setuptools import setup
 from itertools import chain
 
 # Thanks to http://peterdowns.com/posts/first-time-with-pypi.html
-tokit_version = '0.7.1'
+tokit_version = '0.7.4'
 
 setup(
     name='tokit',
