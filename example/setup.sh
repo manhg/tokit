@@ -1,6 +1,6 @@
 set -ex
 
-RUN adduser --system --no-create-home --disabled-password --disabled-login --shell /bin/sh py
+adduser --system --no-create-home --disabled-password --disabled-login --shell /bin/sh py
 
 VER='3.6.0'
 LANG="C.UTF-8"
