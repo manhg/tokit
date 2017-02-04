@@ -355,9 +355,20 @@ def start(host, port, config):
     """
 
     app = App.instance(config)
+    try:
+        # use uvloop if available
+        import asyncio
+        import uvloop
+
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        IOLoop.configure('tornado.platform.asyncio.AsyncIOLoop')
+        logger.debug('Enabled uvloop')
+    except ImportError:
+        pass
 
     http_server = HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
+
     http_server.listen(port, host)
     logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))
 
