@@ -7,6 +7,8 @@ services:
         command: /bin/sh /app/update.sh
         mem_limit: 128M
         memswap_limit: 0M
+        expose:
+            - 9000
         cpu_quota: 25000
         tty: false
         volumes:

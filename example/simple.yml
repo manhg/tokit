@@ -5,6 +5,8 @@ services:
         image: tokit/tokit:lastest
         working_dir: /app/src
         command: /bin/sh /app/update.sh
+        expose:
+            - "9000"
         volumes:
             - .:/app
     py1:
