@@ -7,6 +7,7 @@ pyjade==4.0.0
 sphinx
 sphinx-better-theme
 
+v8eval
 uvloop
 libsass
 momoko==2.2.4
