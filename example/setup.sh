@@ -5,7 +5,8 @@ adduser --system --no-create-home --disabled-password --disabled-login --shell /
 VER='3.6.0'
 LANG="C.UTF-8"
 
-DEV=' gcc make libreadline-dev ncurses-dev libssl-dev zlib1g-dev libpq-dev libev-dev libsass-dev cmake swing libbz2-dev libsqlite3-dev'
+DEV=' gcc make libreadline-dev ncurses-dev libssl-dev zlib1g-dev libpq-dev \
+    libev-dev libsass-dev cmake libbz2-dev libsqlite3-dev'
 TOOLS='nodejs wget vim ca-certificates'
 
 apt-get update > /dev/null
