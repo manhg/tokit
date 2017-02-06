@@ -1,0 +1,5 @@
+v8eval
+uvloop
+libsass
+momoko==2.2.4
+cassandra-driver
