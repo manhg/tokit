@@ -1,4 +1,9 @@
-var profile = <div>
-  <img src="avatar.png" className="profile" />
-  <h3>{[user.firstName, user.lastName].join(' ')}</h3>
-</div>;
+var MyComponent = {
+    view: function() {
+        return (
+            <main>
+                <h1>Hello world</h1>
+            </main>
+        )
+    }
+}

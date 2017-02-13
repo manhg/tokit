@@ -170,23 +170,38 @@ def init_complier(app):
 
 
 
-        class JsxHandler(JavascriptHandler):
+        class BabelHandler(JavascriptHandler):
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self.context = execjs.get().compile(self.read_file('babel.js'))
+                self.context = execjs.get().compile(
+                    self.read_file('babel.js') +
+                    """;
+                    var __babel = (global.Babel || module.exports).transform;
+                    function jsx2js(raw, pragma = 'React.createElement') {
+                        var opts = {
+                            'plugins': [['transform-react-jsx', {'pragma': pragma}]]
+                        };
+                        return __babel(raw, opts).code;
+                    }
+                    function es2js(raw) {
+                        return __babel(raw, { presets: ['es2015'] }).code;
+                    }
+                    """
+                )
 
             @run_on_executor
             def compile(self, full_path):
-                result = self.context.call('(global.Babel || module.exports).transform',
-                    self.read_file(full_path), {
-                    "plugins": ["transform-react-jsx"]
-                })
+                if full_path.endswith('.jsx'):
+                    transfom = 'jsx2js'
+                elif full_path.endswith('.es'):
+                    transfom = 'es2js'
+                result = self.context.call(transfom, self.read_file(full_path))
                 self.write(result)
         COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
         COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
         COMPILER_URLS.append((r'^(/.+\.tag)$', RiotHandler))
-        COMPILER_URLS.append((r'^(/.+\.jsx)$', JsxHandler))
+        COMPILER_URLS.append((r'^(/.+\.(?:jsx|es))$', BabelHandler))
     
     try:
         import sass

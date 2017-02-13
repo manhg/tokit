@@ -3,7 +3,6 @@ import os
 import uuid
 
 import shortuuid
-from tornado.gen import coroutine
 import cassandra
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection as cqlengine_connection
