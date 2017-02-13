@@ -3,13 +3,14 @@ import os
 import uuid
 
 import shortuuid
+from tornado.gen import coroutine
 import cassandra
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection as cqlengine_connection
 from cassandra.query import dict_factory
+from tornado.gen import coroutine
 from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
-
 
 import tokit
 from tokit.utils import cached_property
@@ -48,7 +49,7 @@ def cassandra_init(app):
         connect_timeout=1,
     )
     app.cs_keyspace = config.get('keyspace')
-    
+
     # for use with object mapper
     cqlengine_connection.setup(
         hosts,
@@ -60,6 +61,7 @@ def cassandra_init(app):
 
 
 tokit.Event.get('init').attach(cassandra_init)
+
 
 def serialize(row):
     if 'id' in row:
@@ -102,37 +104,38 @@ class CassandraMixin:
         cs_future.add_callbacks(_success, _fail)
         return future
 
-    async def cs_one(self, table, row_id):
-        result = await self.cs_query(
+    @coroutine
+    def cs_one(self, table, row_id):
+        result = yield self.cs_query(
             "SELECT * FROM " + table + " WHERE id = %s ",
             [row_id]
         )
         if result:
             return (serialize(row) for row in result)
-            
-    async def cs_select(self, cql, params=None):
-        result = await self.cs_query(
-            "SELECT * FROM " + table + " WHERE id = %s ",
-            [row_id]
-        )
+
+    @coroutine
+    def cs_select(self, cql, params=None):
+        result = yield self.cs_query(cql)
         if result:
             return serialize(result[0])
 
-    async def cs_update(self, table, primary_key, **data):
+    @coroutine
+    def cs_update(self, table, primary_key, **data):
         id = data.get(primary_key)
         cql = "UPDATE {table} SET ".format(table=table) + ", ".join([
-            k + " = %s " for k in data.keys()
-        ]) + "WHERE " + primary_key + " = %s"
-        result = await self.cs_query(cql, list(data.values()) + [id, ])
+                                                                        k + " = %s " for k in data.keys()
+                                                                        ]) + "WHERE " + primary_key + " = %s"
+        result = yield self.cs_query(cql, list(data.values()) + [id, ])
         return result
 
-    async def cs_insert(self, table, **data):
+    @coroutine
+    def cs_insert(self, table, **data):
         fields = data.keys()
         cql = 'INSERT INTO {} ({}) VALUES ({})'.format(table,
-            ','.join(fields),
-            ','.join(['%s'] * len(fields))
-        )
-        result = await self.cs_query(cql, list(data.values()))
+                                                       ','.join(fields),
+                                                       ','.join(['%s'] * len(fields))
+                                                       )
+        result = yield self.cs_query(cql, list(data.values()))
         return result
 
     db_insert = cs_insert

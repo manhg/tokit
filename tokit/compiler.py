@@ -43,8 +43,8 @@ class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandle
             if (self.settings['debug']):
                 # /* */ are comment style supported by both Javascript and CSS
                 self.write("/*\n")
-                self.write(f"Handler: {self.__class__.__name__}\n")
-                self.write(f"Exception while compiling {requested_file}\n\n")
+                self.write("Handler: %s\n" % self.__class__.__name__)
+                self.write("Exception while compiling %s\n\n" % requested_file)
                 self.write(str(e))
                 self.write('*/')
 
@@ -147,7 +147,7 @@ def init_complier(app):
                 """ support a folder composed of html, css, js and preprocessors """
                 tag_name = os.path.basename(folder).strip('.tag')
                 with io.StringIO() as buffer:
-                    buffer.write(f"<{tag_name}>\n")
+                    buffer.write("\n<%s>" % tag_name)
 
                     for f in os.listdir(folder):
                         if f.endswith('.styl'):
@@ -163,9 +163,9 @@ def init_complier(app):
                             buffer.write(self.read_file(os.path.join(folder, f)))
                             buffer.write('\n</script>')
                         else:
-                            logger.warn(f"Unknown how to compile: {f}")
+                            logger.warn("Unknown how to compile: %s" % f)
 
-                    buffer.write(f"\n</{tag_name}>")
+                    buffer.write("\n</%s>" % tag_name)
                     return buffer.getvalue()
 
 
@@ -225,8 +225,8 @@ def main():
 
     app = tornado.web.Application(urlspecs())
     app.root_path = os.path.realpath(os.path.curdir)
-    print(f"Serving via compiler in: {app.root_path}")
-    print(f"URL: {opts.options.port}:{opts.options.host}")
+    print("Serving via compiler in: ", app.root_path)
+    print("URL: %s:%s", (opts.options.port, opts.options.host))
     app.listen(opts.options.port, opts.options.host)
     tornado.ioloop.IOLoop.current().start()
 

@@ -8,6 +8,7 @@ from inspect import iscoroutinefunction
 from email.mime.text import MIMEText
 import smtplib
 from email.header import Header
+from tornado.gen import coroutine
 from tornado.concurrent import run_on_executor
 
 tasks_queue = PriorityQueue()
@@ -71,7 +72,8 @@ def register_task_runner(app):
     IOLoop.current().spawn_callback(lambda: tasks_consumer(app))
 
 @on('send_email')
-async def send_email_consumer(app, receipt, body, subject=None):
+@coroutine
+def send_email_consumer(app, receipt, body, subject=None):
     if not subject:
         # consider first line as subject
         subject, body = body.split("\n", 1)

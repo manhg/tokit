@@ -219,7 +219,7 @@ class Assets(ValidPathMixin, tornado.web.StaticFileHandler):
             hashes = []
             for base_path, _, files in os.walk(abs_path):
                 hashes += [cls._get_cached_version(os.path.join(base_path, f)) for f in files]
-            return f"{len(hashes)}-{'-'.join(hashes)}"
+            return "{}-{}".format(len(hashes), '-'.join(hashes))
         else:
             return cls._get_cached_version(abs_path)
 
