@@ -101,14 +101,15 @@ class EmailMixin:
         put('send_email', receipt, content)
 
 
+@on('init')
+def init_executor(app):
+    max_thread_worker = app.config.env['app'].getint('max_thread_worker', 16)
+    app._thread_executor = ThreadPoolExecutor(max_workers=max_thread_worker)
+
+
 class ThreadPoolMixin:
     """ Mix this and wrap blocking function with ``run_on_executor`` """
 
-    _executor = None
-
     @property
     def executor(self):
-        if not self._executor:
-            max_thread_worker = self.application.config.env['app'].getint('max_thread_worker', 16)
-            self._executor = ThreadPoolExecutor(max_workers=max_thread_worker)
-        return self._executor
+        return self.application._thread_executor

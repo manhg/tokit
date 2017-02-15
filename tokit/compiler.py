@@ -14,7 +14,6 @@ from tornado.iostream import IOStream
 from tornado.gen import coroutine
 from tornado.web import HTTPError
 from tornado import options as opts
-
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 from tokit import ValidPathMixin
 from tokit.utils import on, cached_property
@@ -87,9 +86,7 @@ def init_complier(app):
 
         class StylusHandler(JavascriptHandler):
 
-            @cached_property
-            def context(self):
-                return execjs.get().compile(read_file('stylus.js'))
+            context = execjs.get().compile(read_file('stylus.js'))
 
             def prepare(self):
                 self.set_header('Content-Type', 'text/css')
@@ -105,8 +102,7 @@ def init_complier(app):
 
         class RiotHandler(JavascriptHandler):
 
-            @cached_property
-            def context(self):
+            def _context():
                 with io.StringIO() as buffer:
                     buffer.write(self.read_file('coffee-script.js'))
                     buffer.write(self.read_file('riot-compiler.js'))
@@ -117,6 +113,8 @@ def init_complier(app):
                     buffer.write('riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };')
                     print("Init Riot")
                     return execjs.get().compile(buffer.getvalue())
+                    
+            context = _context()
 
             @run_on_executor
             def compile(self, full_path):
@@ -155,12 +153,9 @@ def init_complier(app):
                     return buffer.getvalue()
 
 
-
         class BabelHandler(JavascriptHandler):
 
-            @cached_property
-            def context(self):
-                return execjs.get().compile(
+            context = execjs.get().compile(
                     read_file('babel.js') +
                     """;
                     var __babel = (global.Babel || module.exports).transform;
