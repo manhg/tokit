@@ -27,6 +27,7 @@ COMPILER_URLS = []
 class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
+        self.set_header('Server', "Static")
         self.set_header('Cache-Control', "max-age: 2592000'")
 
     @coroutine
