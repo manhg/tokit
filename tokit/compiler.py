@@ -56,35 +56,31 @@ def init_complier(app):
         has_execjs = False
 
     if has_execjs:
+
+        try:
+            js_library_path = app.config.env['compiler'].get('js_library_path')
+        except KeyError:
+            js_library_path = os.path.join(os.path.dirname(__file__), 'js')
+
+        def read_file(filename):
+            full_path = os.path.join(js_library_path, filename)
+            with io.open(full_path, encoding='utf8') as fp:
+                return fp.read()
+
         class JavascriptHandler(CompilerHandler):
-
-            @property
-            def js_library_path(self):
-                try:
-                    env = self.application.config.env['compiler']
-                    return env['js_library_path']
-                except KeyError:
-                    return os.path.join(os.path.dirname(__file__), 'js')
-
-            def read_file(self, filename):
-                full_path = os.path.join(self.js_library_path, filename)
-                with io.open(full_path, encoding='utf8') as fp:
-                    return fp.read()
 
             def prepare(self):
                 self.set_header('Content-Type', 'application/javascript')
 
         class CoffeeHandler(JavascriptHandler):
 
-            @cached_property
-            def context(self):
-                return execjs.get().compile(self.read_file('coffee-script.js'))
+            context = execjs.get().compile(read_file('coffee-script.js'))
 
             @run_on_executor
             def compile(self, full_path):
                 result = self.context.call(
                     "CoffeeScript.compile",
-                    self.read_file(full_path),
+                    read_file(full_path),
                     {'bare': True}
                 )
                 self.write(result)
@@ -93,7 +89,7 @@ def init_complier(app):
 
             @cached_property
             def context(self):
-                return execjs.get().compile(self.read_file('stylus.js'))
+                return execjs.get().compile(read_file('stylus.js'))
 
             def prepare(self):
                 self.set_header('Content-Type', 'text/css')
@@ -104,7 +100,7 @@ def init_complier(app):
                 # http://stylus-lang.com/docs/import.html#javascript-import-api
                 #   .set('filename', __dirname + '/test.styl')
                 #   .set('paths', paths)
-                result = self.context.call('stylus.render', self.read_file(full_path))
+                result = self.context.call('stylus.render', read_file(full_path))
                 self.write(result)
 
         class RiotHandler(JavascriptHandler):
@@ -117,8 +113,9 @@ def init_complier(app):
                     buffer.write("; var riot = module.exports;")
 
                     # Riot custom language
-                    buffer.write(self.read_file('stylus.js'))
+                    buffer.write(read_file('stylus.js'))
                     buffer.write('riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };')
+                    print("Init Riot")
                     return execjs.get().compile(buffer.getvalue())
 
             @run_on_executor
@@ -126,7 +123,7 @@ def init_complier(app):
                 if os.path.isdir(full_path):
                     content = self.read_folder(full_path)
                 else:
-                    content = self.read_file(full_path)
+                    content = read_file(full_path)
                 result = self.context.call(
                     "riot.compile", content, True
                 )
@@ -141,15 +138,15 @@ def init_complier(app):
                     for f in os.listdir(folder):
                         if f.endswith('.styl'):
                             buffer.write('\n<style type="text/stylus">\n')
-                            buffer.write(self.read_file(os.path.join(folder, f)))
+                            buffer.write(read_file(os.path.join(folder, f)))
                             buffer.write('\n</style>')
 
                         elif f.endswith('.html'):
-                            buffer.write(self.read_file(os.path.join(folder, f)))
+                            buffer.write(read_file(os.path.join(folder, f)))
 
                         elif f.endswith('.coffee'):
                             buffer.write('\n<script type="coffee">\n')
-                            buffer.write(self.read_file(os.path.join(folder, f)))
+                            buffer.write(read_file(os.path.join(folder, f)))
                             buffer.write('\n</script>')
                         else:
                             logger.warn("Unknown how to compile: %s" % f)
@@ -164,7 +161,7 @@ def init_complier(app):
             @cached_property
             def context(self):
                 return execjs.get().compile(
-                    self.read_file('babel.js') +
+                    read_file('babel.js') +
                     """;
                     var __babel = (global.Babel || module.exports).transform;
                     function jsx2js(raw, pragma = 'React.createElement') {
@@ -185,7 +182,7 @@ def init_complier(app):
                     transfom = 'jsx2js'
                 elif full_path.endswith('.es'):
                     transfom = 'es2js'
-                result = self.context.call(transfom, self.read_file(full_path))
+                result = self.context.call(transfom, read_file(full_path))
                 self.write(result)
 
         COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
