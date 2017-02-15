@@ -21,7 +21,6 @@ from tokit import logger
 
 COMPILER_URLS = []
 
-
 class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
@@ -33,19 +32,25 @@ class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandle
         requested_path = requested_file.replace(self.application.settings['static_url_prefix'], '')
         abs_path = os.path.abspath(os.path.join(self.application.root_path, requested_path))
         self.validate_absolute_path(self.application.root_path, abs_path)
+        (status, body) = yield self.execute(abs_path)
+        self.set_status(status)
+        self.write(body)
+
+    @coroutine
+    def execute(self, abs_path):
         try:
-            yield self.compile(abs_path)
+            result = yield self.compile(abs_path)
+            return (200, result)
         except Exception as e:
-            self.set_status(400)
             logger.exception(e)
 
             if (self.settings['debug']):
                 # /* */ are comment style supported by both Javascript and CSS
-                self.write("/*\n")
-                self.write("Handler: %s\n" % self.__class__.__name__)
-                self.write("Exception while compiling %s\n\n" % requested_file)
-                self.write(str(e))
-                self.write('*/')
+                return (400,
+                    "/*\nHandler: %s\n" % self.__class__.__name__ +
+                    "Exception while compiling %s\n\n" % requested_file +
+                    str(e) + '*/'
+                )
 
 def init_complier(app):
     try:
@@ -77,12 +82,11 @@ def init_complier(app):
 
             @run_on_executor
             def compile(self, full_path):
-                result = self.context.call(
+                return self.context.call(
                     "CoffeeScript.compile",
                     read_file(full_path),
                     {'bare': True}
                 )
-                self.write(result)
 
         class StylusHandler(JavascriptHandler):
 
@@ -97,8 +101,7 @@ def init_complier(app):
                 # http://stylus-lang.com/docs/import.html#javascript-import-api
                 #   .set('filename', __dirname + '/test.styl')
                 #   .set('paths', paths)
-                result = self.context.call('stylus.render', read_file(full_path))
-                self.write(result)
+                return self.context.call('stylus.render', read_file(full_path))
 
         class RiotHandler(JavascriptHandler):
 
@@ -111,7 +114,6 @@ def init_complier(app):
                     # Riot custom language
                     buffer.write(read_file('stylus.js'))
                     buffer.write('riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };')
-                    print("Init Riot")
                     return execjs.get().compile(buffer.getvalue())
                     
             context = _context()
@@ -122,10 +124,9 @@ def init_complier(app):
                     content = self.read_folder(full_path)
                 else:
                     content = read_file(full_path)
-                result = self.context.call(
+                return self.context.call(
                     "riot.compile", content, True
                 )
-                self.write(result)
 
             def read_folder(self, folder):
                 """ support a folder composed of html, css, js and preprocessors """
@@ -177,8 +178,7 @@ def init_complier(app):
                     transfom = 'jsx2js'
                 elif full_path.endswith('.es'):
                     transfom = 'es2js'
-                result = self.context.call(transfom, read_file(full_path))
-                self.write(result)
+                return self.context.call(transfom, read_file(full_path))
 
         COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
         COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
@@ -199,11 +199,10 @@ def init_complier(app):
     
             @run_on_executor
             def compile(self, full_path):
-                result = sass.compile(
+                return sass.compile(
                     filename=full_path,
                     output_style=('nested' if self.application.settings['debug'] else 'compressed')
                 )
-                self.write(result)
     
         COMPILER_URLS.append((r'^(/.+\.sass)$', SassHandler))
     
