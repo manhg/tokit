@@ -116,7 +116,6 @@ def init_complier(app):
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
 
                 with io.StringIO() as buffer:
                     buffer.write(self.read_file('coffee-script.js'))
