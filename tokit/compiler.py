@@ -17,7 +17,7 @@ from tornado import options as opts
 
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 from tokit import ValidPathMixin
-from tokit.utils import on
+from tokit.utils import on, cached_property
 from tokit import logger
 
 COMPILER_URLS = []
@@ -71,18 +71,14 @@ def init_complier(app):
                 with io.open(full_path, encoding='utf8') as fp:
                     return fp.read()
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.context = execjs.get().compile(self.read_file('coffee-script.js'))
-
             def prepare(self):
                 self.set_header('Content-Type', 'application/javascript')
 
         class CoffeeHandler(JavascriptHandler):
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.context = execjs.get().compile(self.read_file('coffee-script.js'))
+            @cached_property
+            def context(self):
+                return execjs.get().compile(self.read_file('coffee-script.js'))
 
             @run_on_executor
             def compile(self, full_path):
@@ -95,9 +91,9 @@ def init_complier(app):
 
         class StylusHandler(JavascriptHandler):
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.context = execjs.get().compile(self.read_file('stylus.js'))
+            @cached_property
+            def context(self):
+                return execjs.get().compile(self.read_file('stylus.js'))
 
             def prepare(self):
                 self.set_header('Content-Type', 'text/css')
@@ -113,9 +109,8 @@ def init_complier(app):
 
         class RiotHandler(JavascriptHandler):
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
+            @cached_property
+            def context(self):
                 with io.StringIO() as buffer:
                     buffer.write(self.read_file('coffee-script.js'))
                     buffer.write(self.read_file('riot-compiler.js'))
@@ -124,12 +119,12 @@ def init_complier(app):
                     # Riot custom language
                     buffer.write(self.read_file('stylus.js'))
                     buffer.write('riot.parsers.css.stylus = function(tagName, css) { return stylus.render(css) };')
-                    self.context = execjs.get().compile(buffer.getvalue())
+                    return execjs.get().compile(buffer.getvalue())
 
             @run_on_executor
             def compile(self, full_path):
                 if os.path.isdir(full_path):
-                    content = self.compile_folder(full_path)
+                    content = self.read_folder(full_path)
                 else:
                     content = self.read_file(full_path)
                 result = self.context.call(
@@ -137,7 +132,7 @@ def init_complier(app):
                 )
                 self.write(result)
 
-            def compile_folder(self, folder):
+            def read_folder(self, folder):
                 """ support a folder composed of html, css, js and preprocessors """
                 tag_name = os.path.basename(folder).strip('.tag')
                 with io.StringIO() as buffer:
@@ -166,9 +161,9 @@ def init_complier(app):
 
         class BabelHandler(JavascriptHandler):
 
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.context = execjs.get().compile(
+            @cached_property
+            def context(self):
+                return execjs.get().compile(
                     self.read_file('babel.js') +
                     """;
                     var __babel = (global.Babel || module.exports).transform;
@@ -192,6 +187,7 @@ def init_complier(app):
                     transfom = 'es2js'
                 result = self.context.call(transfom, self.read_file(full_path))
                 self.write(result)
+
         COMPILER_URLS.append((r'^(/.+\.styl)$', StylusHandler))
         COMPILER_URLS.append((r'^(/.+\.coffee)$', CoffeeHandler))
         COMPILER_URLS.append((r'^(/.+\.tag)$', RiotHandler))

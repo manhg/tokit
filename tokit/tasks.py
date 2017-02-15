@@ -109,6 +109,6 @@ class ThreadPoolMixin:
     @property
     def executor(self):
         if not self._executor:
-            max_thread_worker = self.application.config.env['app'].get('max_thread_worker', 16)
+            max_thread_worker = self.application.config.env['app'].getint('max_thread_worker', 16)
             self._executor = ThreadPoolExecutor(max_workers=max_thread_worker)
         return self._executor
