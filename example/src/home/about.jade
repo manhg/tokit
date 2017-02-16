@@ -1,0 +1,14 @@
+{% extends "../base.html" %}
+
+{% block body %}
+h1 Jade-syntax template demo
+ul
+  li
+    a(href="/") Home
+  li
+    a(href="/about") About
+  li
+    span {{ 2015 + 2 }}
+
+p Translated into "{* hello *}"
+{% end %}

@@ -1,0 +1,3 @@
+class MyString extends String {
+
+}

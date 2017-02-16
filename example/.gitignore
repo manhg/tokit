@@ -1,0 +1,16 @@
+__pycache__
+
+/config/development.ini
+/config/production.ini
+/doc/_build
+
+*.zip
+*.tar
+*.tgz
+
+.env
+
+/bin
+/include
+/lib
+/lib64

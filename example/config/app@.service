@@ -1,0 +1,13 @@
+[Service]
+WorkingDirectory=/home/APP/src/
+ExecStart=/home/APP/bin/python3 -u /home/APP/src/app.py --port=%I
+Restart=always
+User=APP
+SyslogIdentifier=APP
+Environment=ENV=production
+
+NoNewPrivileges=true
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

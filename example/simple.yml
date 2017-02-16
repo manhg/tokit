@@ -1,0 +1,25 @@
+version: "2"
+services:
+    py0: &py
+        restart: on-failure:1
+        image: tokit/tokit:lastest
+        working_dir: /app/src
+        command: /bin/sh /app/update.sh
+        expose:
+            - "9000"
+        volumes:
+            - .:/app
+    py1:
+        <<: *py
+    web:
+        image: nginx:1.10-alpine
+        restart: on-failure:1
+        volumes:
+            - ./config/nginx.conf:/mnt/nginx.conf
+            - ./tmp/nginx/:/var/log/nginx/
+        command: nginx -g 'daemon off;' -c /mnt/nginx.conf
+        links:
+            - py0
+            - py1
+        ports:
+            - "8000:80"

@@ -1,0 +1,76 @@
+version: "2"
+services:
+    py0: &py
+        restart: on-failure:1
+        image: tokit/tokit:lastest
+        working_dir: /app/src
+        command: /bin/sh /app/update.sh
+        mem_limit: 128M
+        memswap_limit: 0M
+        expose:
+            - 9000
+        cpu_quota: 25000
+        tty: false
+        volumes:
+            - .:/app
+        links:
+            - cs1
+            - cs2
+            - pg
+            - fs
+    py1:
+        <<: *py
+    web:
+        image: nginx:1.10-alpine
+        restart: on-failure:1
+        volumes:
+            - ./config/nginx.conf:/mnt/nginx.conf
+            - ./tmp/nginx/:/var/log/nginx/
+        command: nginx -g 'daemon off;' -c /mnt/nginx.conf
+        links:
+            - py0
+            - py1
+        ports:
+            - "8000:80"
+    mail:
+        image: tokit/tokit:lastest
+        command: python3 -m smtpd -n -c DebuggingServer 0.0.0.0:25
+        expose:
+            - 25
+    pg:
+        image: postgres:9.5-alpine
+        mem_limit: 256M
+        memswap_limit: 256M
+        cpu_quota: 25000
+        restart: on-failure:3
+        volumes:
+            - ./tmp/pg_dump:/docker-entrypoint-initdb.d
+            - ./data/pg:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_USER=app
+            - POSTGRES_DB=app
+    
+    fs:
+        image: giang/weedfs
+        volumes:
+           - ./data/weedfs:/data
+    
+    cs1: &cs
+        image: cassandra:3
+        restart: on-failure:1
+        
+        # suppose default cpu period is 100ms, this set 25% CPU limit
+        cpu_quota: 25000
+        mem_limit: 256M
+        memswap_limit: 0M
+        environment:
+            - CASSANDRA_CLUSTER_NAME=app
+            - CASSANDRA_DC=dc1
+        volumes:
+           - ./data/cs1:/var/lib/cassandra
+    cs2:
+        <<: *cs
+        environment:
+            - CASSANDRA_SEEDS=cs1
+        volumes:
+           - ./data/cs2:/var/lib/cassandra

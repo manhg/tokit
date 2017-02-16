@@ -1,0 +1,22 @@
+{% extends "../base.html" %}
+
+{% block head %}
+  <title>Tokit demo</title>
+{% end %}
+
+{% block body %}
+  <h1>Hello world</h1>
+  <hr>
+
+  <p>{* hello *}</p>
+  <p>{* app_name name="Tokit" *}</p>
+  <p>{* sign_up *}</p>
+
+  <x-boxes></x-boxes>
+  <hr>
+  <x-sample></x-sample>
+
+  <p>
+    Jade-template demo <a class=button href="{{ reverse_url('about') }}">About</a>
+  </p>
+{% end %}
