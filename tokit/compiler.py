@@ -31,6 +31,7 @@ COMPILER_URLS = []
 class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandler):
 
     def set_default_headers(self):
+        self.set_header('Server', "Static")
         self.set_header('Cache-Control', "max-age: 2592000'")
 
     @coroutine
@@ -119,7 +120,6 @@ def init_complier(app):
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                # source: https://raw.githubusercontent.com/stylus/stylus-lang.com/gh-pages/try/stylus.min.js
 
                 with io.StringIO() as buffer:
                     buffer.write(self.read_file('coffee-script.js'))
