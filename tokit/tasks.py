@@ -39,6 +39,8 @@ def tasks_consumer(app):
     or normal function (run in thread - can be blocking)
     """
     while True:
+        # another way: use Postgres notfiy / listen
+        # http://initd.org/psycopg/docs/advanced.html#asynchronous-notifications
         yield sleep(0.3)
         try:
             priority, task = tasks_queue.get_nowait()
