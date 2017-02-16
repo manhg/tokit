@@ -2,11 +2,6 @@
 Transform to browsers' languages
 Can serve files directly using shortcut: ``python3 -m tokit.compiler``
 
-For Sass, it requires system's ``libsass`` installed.
-
-For Coffeescript it need a Javascript runtime, either by
-having Python's ``pyv8`` (with ``libv8`` installed or system's ``node``
-
 For Stylus, it has same requirements as Coffeescript
 """
 import os
@@ -123,11 +118,6 @@ def init_complier(app):
 
                 with io.StringIO() as buffer:
                     buffer.write(self.read_file('coffee-script.js'))
-                    buffer.write(
-                        # HACK fake CommonJS environment to load the compiler
-                        # the library originally target NodeJS
-                        "var exports = {}; module.exports = {};"
-                    )
                     buffer.write(self.read_file('riot-compiler.js'))
                     buffer.write("; var riot = module.exports;")
 
