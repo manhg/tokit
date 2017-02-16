@@ -11,11 +11,15 @@ For Stylus, it has same requirements as Coffeescript
 """
 import os
 import io
+import glob
+
 import tornado.ioloop
 import tornado.web
 from tornado.iostream import IOStream
 from tornado.gen import coroutine
 from tornado.web import HTTPError
+from tornado import options as opts
+
 from tokit.tasks import ThreadPoolMixin, run_on_executor
 from tokit import ValidPathMixin
 from tokit.utils import on
@@ -231,19 +235,37 @@ def init_complier(app):
     else:
         logger.warn('Found no compilers handlers')
 
-def main():
-    from tornado import options as opts
-
-    opts.define('host', default='::1')
-    opts.define('port', default='80')
-    opts.parse_command_line()
-
-    app = tornado.web.Application(urlspecs())
-    app.root_path = os.path.realpath(os.path.curdir)
+def serve():
+    app = tornado.web.Application(COMPILER_URLS)
+    app.root_path = opts.options.src
     print("Serving via compiler in: ", app.root_path)
     print("URL: %s:%s", (opts.options.port, opts.options.host))
     app.listen(opts.options.port, opts.options.host)
     tornado.ioloop.IOLoop.current().start()
+
+def scan_compilable_files():
+    # scan files for build
+    for ext in ['tag', 'coffee', 'es', 'jsx', 'sass', 'styl']:
+        targets = glob.glob(opts.options.src + '/**/*.' + ext, recursive=True)
+        yield from targets
+
+def build():
+    # run server
+    opts.options.src
+
+def main():
+    pwd = os.path.realpath(os.path.curdir)
+    opts.define('mode', default='serve')
+    opts.define('port', default='8080')
+    opts.define('host', default='::1')
+    opts.define('src', default=pwd)
+    opts.define('dest', default=pwd)
+    opts.parse_command_line()
+
+    if opts.options.mode == 'serve':
+        serve()
+    elif opts.options.mode == 'build':
+        build()
 
 if __name__ == "__main__":
     main()
