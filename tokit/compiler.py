@@ -130,7 +130,7 @@ def init_complier(app):
 
             def read_folder(self, folder):
                 """ support a folder composed of html, css, js and preprocessors """
-                tag_name = os.path.basename(folder).strip('.tag')
+                tag_name = os.path.basename(os.path.splitext(folder)[0])
                 with io.StringIO() as buffer:
                     buffer.write("\n<%s>" % tag_name)
 
