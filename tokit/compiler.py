@@ -48,7 +48,7 @@ class CompilerHandler(ThreadPoolMixin, ValidPathMixin, tornado.web.RequestHandle
                 # /* */ are comment style supported by both Javascript and CSS
                 return (400,
                     "/*\nHandler: %s\n" % self.__class__.__name__ +
-                    "Exception while compiling %s\n\n" % requested_file +
+                    "Exception while compiling %s\n\n" % abs_path +
                     str(e) + '*/'
                 )
 
@@ -107,8 +107,8 @@ def init_complier(app):
 
             def _context():
                 with io.StringIO() as buffer:
-                    buffer.write(self.read_file('coffee-script.js'))
-                    buffer.write(self.read_file('riot-compiler.js'))
+                    buffer.write(read_file('coffee-script.js'))
+                    buffer.write(read_file('riot-compiler.js'))
                     buffer.write("; var riot = module.exports;")
 
                     # Riot custom language
