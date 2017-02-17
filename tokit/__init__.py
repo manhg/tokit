@@ -185,7 +185,7 @@ class Module(tornado.web.UIModule, metaclass=Registry):
 class ValidPathMixin:
     ALLOW_TYPES = (
         'html', 'js', 'css',
-        'png', 'jpg', 'ico', 'svg', 'gif',
+        'png', 'jpg', 'ico', 'svg', 'gif', 'woff', 'ttf',
         'zip', 'tar', 'tgz', 'txt',
         'map', 'tag', 'coffee', 'sass', 'styl', 'jsx', 'es'
     )
