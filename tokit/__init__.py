@@ -330,6 +330,25 @@ class Config:
                 raise e
         self.modules_loaded = loaded
 
+
+@on('config')
+def setup_logging(config):
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        filename=config.root_path + '/../log/python.log',
+        level=logging.DEBUG,
+        format=formatter
+    )
+    fh = TimedRotatingFileHandler(config.root_path + '/../log/app.log', when='D')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.INFO)
+
+    for name in ('tornado.application', 'tornado.general'):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.INFO)
+        logger.addHandler(fh)
+
+
 class App(tornado.web.Application):
     config = None
 
