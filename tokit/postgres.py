@@ -3,15 +3,17 @@ import shortuuid
 import uuid
 
 import momoko
+import momoko.exceptions
+import psycopg2
 from psycopg2.extras import DictCursor, DictRow, register_uuid
 import psycopg2.extensions
 
-from tornado.gen import coroutine
-
+from tornado.gen import coroutine, sleep
+from tornado.web import HTTPError
 import tokit
-from tokit import api
 
 logger = tokit.logger
+
 
 class DictLogCursor(DictCursor):
 
@@ -44,7 +46,10 @@ def pg_init(app):
     )
     register_uuid()
     app.pg_db = momoko.Pool(**momoko_opts)
-    app.pg_db.connect()
+    try:
+        app.pg_db.connect()
+    except momoko.PartiallyConnectedError:
+        logger.error('Cannot connect')
 
 
 class PgMixin:
@@ -78,21 +83,40 @@ class PgMixin:
                     ','.join(fields),
                     ','.join(['%s'] * len(fields))
                     )
-        cursor = yield self.db.execute(sql, values)
+        cursor = yield self.pg_query(sql, *values)
         return cursor.fetchone()[0]
+
+    @coroutine
+    def pg_getconn(self):
+        try:
+            connection = yield self.db.getconn()
+            return connection
+        except psycopg2.OperationalError:
+            yield self.db.connect()
+            yield sleep(0.5)
+            try:
+                connection = yield self.db.getconn()
+                return connection
+            except:
+                raise HTTPError(503, "Database unavailable")
+        except (momoko.Pool.DatabaseNotAvailable, momoko.exceptions.PartiallyConnectedError):
+            raise HTTPError(503, "Database unavailable")
 
     @coroutine
     def pg_update(self, table, data):
         changes = [field + ' = %s' for field in data.keys()]
         sql = 'UPDATE {} SET {} WHERE id = %s'.format(table, ','.join(changes))
         values = list(data.values()) + [data['id']]
-        yield self.db.execute(sql, values)
+        cursor = yield self.pg_query(sql, *values)
+        return cursor
 
     @coroutine
     def pg_query(self, query, *params):
         """ Low level execuation """
-        result = yield self.db.execute(query, params)
-        return result
+        connection = yield self.pg_getconn()
+        with self.db.manage(connection):
+            cursor = yield connection.execute(query, params)
+            return cursor
 
     def pg_serialize(self, row):
         if not row:
