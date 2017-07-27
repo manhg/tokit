@@ -1,5 +1,5 @@
 import peewee
-from tokit.orm import Model, objects
+from tokit.orm import Model, ORM
 from tokit import Request
 
 
@@ -12,5 +12,5 @@ class PostsIndex(Request):
     URL = '/posts'
 
     async def get(self):
-        rows = await objects.execute(Posts.select())
+        rows = await ORM.execute(Posts.select())
         self.render('index.html', rows=rows)

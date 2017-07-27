@@ -9,7 +9,7 @@ import tokit
 
 logger = tokit.logger
 db_proxy = peewee.Proxy()
-objects = peewee_async.Manager(db_proxy, loop=asyncio.get_event_loop())
+ORM = peewee_async.Manager(db_proxy, loop=asyncio.get_event_loop())
 
 
 class Model(peewee.Model):
