@@ -12,6 +12,7 @@ def main():
     config = tokit.Config(__file__)
     config.set_env(opts.options.env)
 
+    tokit.install_asyncio()
     tokit.start(opts.options.host, opts.options.port, config)
 
 if __name__ == '__main__':

@@ -348,6 +348,27 @@ class App(tornado.web.Application):
         Event.get('after_init').emit(app)
         return app
 
+
+def install_asyncio():
+    if IOLoop.initialized():
+        logger.debug('Asyncio cannot be installed')
+        return
+
+    import asyncio
+    from tornado.platform.asyncio import AsyncIOMainLoop
+
+    try:
+        # use uvloop if available
+        import uvloop
+    except ImportError:
+        pass
+    else:
+        logger.debug('Enabled uvloop')
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+    AsyncIOMainLoop().install()
+    logger.debug('Enabled asyncio')
+
 def start(host, port, config):
     """
     Entry point for application.
@@ -355,19 +376,9 @@ def start(host, port, config):
     """
 
     app = App.instance(config)
-    try:
-        # use uvloop if available
-        import asyncio
-        import uvloop
-
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-        IOLoop.configure('tornado.platform.asyncio.AsyncIOLoop')
-        logger.debug('Enabled uvloop')
-    except ImportError:
-        pass
-
-    http_server = HTTPServer(app, xheaders=True)
     ioloop = IOLoop.instance()
+    http_server = HTTPServer(app, xheaders=True)
+
 
     http_server.listen(port, host)
     logger.info('Running PID {pid} @ http://{host}:{port}'.format(host=host, pid=os.getpid(), port=port))

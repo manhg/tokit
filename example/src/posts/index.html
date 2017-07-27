@@ -1,0 +1,14 @@
+{% extends "../base.html" %}
+
+{% block head %}
+  <title>Async demo</title>
+{% end %}
+
+{% block body %}
+  {% for row in rows %}
+    <section>
+        <h2>{{ row.title }}</h2>
+        <p>{{ row.content }}</p>
+    </section>
+  {% end %}
+{% end %}
