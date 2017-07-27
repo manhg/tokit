@@ -7,7 +7,7 @@ services:
         restart: on-failure:1
         image: tokit/tokit:lastest
         working_dir: /app/src
-        command: /bin/sh /app/build/update.sh
+        command: /bin/sh /app/docker/update.sh
         expose:
             - "9000"
         volumes:

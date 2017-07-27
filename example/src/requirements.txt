@@ -1,1 +1,7 @@
-git+https://github.com/manhg/tokit
+https://github.com/manhg/tokit/archive/master.tar.gz
+
+# add extra packages here
+# to make it faster, consider moving these to Docker build requirements.txt file.
+uvloop
+aiopg
+peewee_async
