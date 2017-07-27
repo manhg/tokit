@@ -1,4 +1,7 @@
 version: "2"
+
+# to do zero downtime deployment
+# restart Pythons one by one with small delay
 services:
     py0: &py
         restart: on-failure:1
@@ -12,7 +15,7 @@ services:
     py1:
         <<: *py
     web:
-        image: nginx:1.10-alpine
+        image: nginx:1.12-alpine
         restart: on-failure:1
         volumes:
             - ./config/nginx.conf:/mnt/nginx.conf
