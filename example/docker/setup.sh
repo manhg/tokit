@@ -2,7 +2,7 @@ set -ex
 
 adduser --system --no-create-home --disabled-password --disabled-login --shell /bin/sh py
 
-VER='3.6.0'
+VER='3.6.1'
 LANG="C.UTF-8"
 
 DEV='git curl cmake gcc make libreadline-dev ncurses-dev libssl-dev zlib1g-dev libpq-dev libev-dev libsass-dev libbz2-dev libsqlite3-dev'

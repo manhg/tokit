@@ -1,4 +1,4 @@
-tornado==4.4
+tornado==4.5
 shortuuid==0.4.3
 cerberus==1.0.1
 PyExecJS==1.4.0
