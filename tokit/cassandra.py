@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def allow_management():
-    os.environ['CQLENG_ALLOW_SCHEMA_MANAGEMENT'] = 'CQLENG_ALLOW_SCHEMA_MANAGEMENT'
+    os.environ['CQLENG_ALLOW_SCHEMA_MANAGEMENT'] = True
 
 
 def cassandra_init(app):

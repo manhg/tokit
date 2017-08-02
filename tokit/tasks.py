@@ -1,19 +1,24 @@
 import os
+from inspect import iscoroutinefunction
+from email.mime.text import MIMEText
+from email.header import Header
+import smtplib
 from concurrent.futures import ThreadPoolExecutor
 
 from tornado.queues import PriorityQueue, QueueEmpty
 from tornado.gen import sleep, coroutine
-from tokit import Event, on, logger
-from inspect import iscoroutinefunction
-from email.mime.text import MIMEText
-import smtplib
-from email.header import Header
-from tornado.gen import coroutine
+from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 
-tasks_queue = PriorityQueue()
+from tokit import Event, on, logger
 
-def put(name, *args, priority=0, **kwargs):
+# time to sleep wait for new job
+SLEEP_INTERVAL = 0.3
+
+# in-memory storage
+simple_queue = PriorityQueue()
+
+def simple_queue_put(name, *args, priority=0, **kwargs):
     """
     Schedule a task with given params
 
@@ -27,11 +32,29 @@ def put(name, *args, priority=0, **kwargs):
 
         put('task_xyz', 'val1')
     """
-    tasks_queue.put((priority, {'name': name, 'args': args, 'kwargs': kwargs}))
-
+    simple_queue.put((priority, {'name': name, 'args': args, 'kwargs': kwargs}))
+    
+async def execute_task(app, task):
+    handlers = Event.get(task['name']).handlers
+    for handler in handlers:
+        if iscoroutinefunction(handler):
+            yield handler(
+                app,
+                *task.get('args'),
+                **task.get('kwargs')
+            )
+        else:
+            yield app._thread_executor.submit(
+                handler,
+                app,
+                *task.get('args'),
+                **task.get('kwargs')
+            )
+    else:
+        logger.warn('No handler for task: %s', task['name'])
 
 @coroutine
-def tasks_consumer(app):
+def simple_queue_consumer(app):
     """
     Check for pending and excute tasks
 
@@ -39,39 +62,54 @@ def tasks_consumer(app):
     or normal function (run in thread - can be blocking)
     """
     while True:
-        # another way: use Postgres notfiy / listen
-        # http://initd.org/psycopg/docs/advanced.html#asynchronous-notifications
-        yield sleep(0.3)
         try:
-            priority, task = tasks_queue.get_nowait()
-            handlers = Event.get(task['name']).handlers
-            handler = None
-            for handler in handlers:
-                if iscoroutinefunction(handler):
-                    yield handler(
-                        app,
-                        *task.get('args'),
-                        **task.get('kwargs')
-                    )
-                else:
-                    with ThreadPoolExecutor() as executor:
-                        yield executor.submit(
-                            handler,
-                            app,
-                            *task.get('args'),
-                            **task.get('kwargs')
-                        )
-            if not handler:
-                logger.warn('No handler for task: %s', task['name'])
+            priority, task = simple_queue.get_nowait()
+            yield execute_task(app, task)
         except QueueEmpty:
-            pass
+            yield sleep(SLEEP_INTERVAL)
         else:
-            tasks_queue.task_done()
+            simple_queue.task_done()
 
 
-def register_task_runner(app):
-    from tornado.ioloop import IOLoop
-    IOLoop.current().spawn_callback(lambda: tasks_consumer(app))
+def register_simple_queue(app):
+    IOLoop.current().spawn_callback(lambda: simple_queue_consumer(app))
+    
+try:
+    # git@github.com:manhg/pq.git
+    from pq.tasks import PQ, Queue
+    from psycopg2.pool import ThreadedConnectionPool
+    logger = logging.getLogger('pq.tasks')
+except:
+    pass
+else:
+    pq_manager = PQ(
+        table='task_queues',
+        queue_class=Queue
+    )
+    db_queue = pq_manager['default']
+
+    def db_queue_put(name, *args, **kwargs):
+        db_queue.put({'name': name, 'args': args, 'kwargs': kwargs})
+
+    @tokit.on('init')
+    def pg_init(app):
+        env = app.config.env['postgres']
+        pool = ThreadedConnectionPool(maxconn=env['size'], dsn=env['dsn'])
+        pq_manager.pool = pool
+        db_queue.pool = pool
+        
+    @coroutine
+    def db_queue_consumer(app):
+        while True:
+            task = db_queue.get(block=False)
+            if task is None:
+                yield sleep(SLEEP_INTERVAL)
+            else:
+                yield db_queue.perform(task)
+
+    def register_db_queue(app):
+        IOLoop.current().spawn_callback(lambda: db_queue_consumer(app))
+
 
 @on('send_email')
 @coroutine
@@ -100,7 +138,7 @@ class EmailMixin:
         content = self.render_string(
             os.path.join(self.application.root_path, template), **kwargs
         ).decode()
-        put('send_email', receipt, content)
+        simple_queue_put('send_email', receipt, content)
 
 
 @on('init')
