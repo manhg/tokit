@@ -23,7 +23,7 @@ def parse_json(s):
     try:
         return json.loads(s)
     except ValueError as e:
-        raise Exception('Invalid JSON: ' + str(e))
+        raise HTTPError(500, 'Invalid JSON: ' + str(e))
 
 
 class JsonMixin:

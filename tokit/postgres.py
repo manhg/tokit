@@ -104,9 +104,10 @@ class PgMixin:
 
     @coroutine
     def pg_update(self, table, data):
+        id_value = data.pop('id')
         changes = [field + ' = %s' for field in data.keys()]
         sql = 'UPDATE {} SET {} WHERE id = %s'.format(table, ','.join(changes))
-        values = list(data.values()) + [data['id']]
+        values = list(data.values()) + [id_value]
         cursor = yield self.pg_query(sql, *values)
         return cursor
 
