@@ -13,6 +13,12 @@ def main():
     config.set_env(opts.options.env)
 
     tokit.install_asyncio()
+    from tokit.tasks import register_db_queue
+
+    @tokit.on('init')
+    def init(app):
+        register_db_queue(app)
+
     tokit.start(opts.options.host, opts.options.port, config)
 
 if __name__ == '__main__':

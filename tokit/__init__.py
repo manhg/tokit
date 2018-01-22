@@ -397,6 +397,8 @@ def start(host, port, config):
             """
             Schedule shutdown on next tick
             """
+            Event.get('stop').emit()
+
             def _shutdown():
                 http_server.stop()
                 ioloop.stop()

@@ -1,22 +1,27 @@
 import os
+import logging
 from inspect import iscoroutinefunction
 from email.mime.text import MIMEText
 from email.header import Header
 import smtplib
 from concurrent.futures import ThreadPoolExecutor
+from threading import Thread
 
 from tornado.queues import PriorityQueue, QueueEmpty
 from tornado.gen import sleep, coroutine
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
-
-from tokit import Event, on, logger
+logger = logging.getLogger('pq.tasks')
+from tokit import Event, on
 
 # time to sleep wait for new job
 SLEEP_INTERVAL = 0.3
 
 # in-memory storage
 simple_queue = PriorityQueue()
+
+
+# reference https://hackernoon.com/controlling-python-async-creep-ec0a0f4b79ba
 
 def simple_queue_put(name, *args, priority=0, **kwargs):
     """
@@ -77,38 +82,40 @@ def register_simple_queue(app):
 try:
     # git@github.com:manhg/pq.git
     from pq.tasks import PQ, Queue
-    from psycopg2.pool import ThreadedConnectionPool
-    logger = logging.getLogger('pq.tasks')
 except:
     pass
 else:
+    from psycopg2.pool import ThreadedConnectionPool
     pq_manager = PQ(
         table='task_queues',
         queue_class=Queue
     )
     db_queue = pq_manager['default']
 
+    def db_queue_work():
+        logger.info('Queue worker started')
+        db_queue.work()
+
     def db_queue_put(name, *args, **kwargs):
         db_queue.put({'name': name, 'args': args, 'kwargs': kwargs})
 
-    @tokit.on('init')
-    def pg_init(app):
+    def register_db_queue(app):
         env = app.config.env['postgres']
-        pool = ThreadedConnectionPool(maxconn=env['size'], dsn=env['dsn'])
+        pool = ThreadedConnectionPool(minconn=1, maxconn=env['size'], dsn=env['dsn'])
         pq_manager.pool = pool
         db_queue.pool = pool
-        
-    @coroutine
-    def db_queue_consumer(app):
-        while True:
-            task = db_queue.get(block=False)
-            if task is None:
-                yield sleep(SLEEP_INTERVAL)
-            else:
-                yield db_queue.perform(task)
 
-    def register_db_queue(app):
-        IOLoop.current().spawn_callback(lambda: db_queue_consumer(app))
+        # Notice: process queue in another thread
+        # be careful with non thread-safe operations
+        worker_thread = Thread(target=db_queue_work)
+        worker_thread.start()
+
+        @on('stop')
+        def unregister_db_queue():
+            logger.info('Stop queue worker')
+            worker_thread.join()
+            if worker_thread.is_alive():
+                worker_thread.set()
 
 
 @on('send_email')
